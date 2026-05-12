@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello Burger | ระบบสั่งอาหาร</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav id="navbar">
+        <a href="#" class="logo">
+            <i data-lucide="utensils-crossed"></i>
+            Homie Boy
+        </a>
+        <ul class="nav-links">
+            <li><a href="#home">หน้าแรก</a></li>
+            <li><a href="#menu">เมนู</a></li>
+        </ul>
+        <div class="nav-icons">
+            <div class="cart-icon" id="cart-toggle">
+                <i data-lucide="shopping-bag"></i>
+                <span class="cart-count">0</span>
+            </div>
+            <div class="mobile-menu-toggle" id="mobile-menu-toggle">
+                <i data-lucide="menu"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Nav Overlay -->
+    <div class="mobile-nav" id="mobile-nav">
+        <ul>
+            <li><a href="#home" onclick="toggleMobileMenu()">หน้าแรก</a></li>
+            <li><a href="#menu" onclick="toggleMobileMenu()">เมนู</a></li>
+        </ul>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <div class="title-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 11h14l1 10H4L5 11z"/>
+                    <path d="M8 11V4"/>
+                    <path d="M12 11V2"/>
+                    <path d="M16 11V4"/>
+                    <path d="M5 11l-2-3"/>
+                    <path d="M19 11l2-3"/>
+                </svg>
+            </div>
+            <h1>อร่อยเต็มคำกับ<br><span>เมนูโฮมมี่</span></h1>
+            <p>สัมผัสรสชาติที่คัดสรรมาเพื่อคุณโดยเฉพาะ ไม่ว่าจะเป็นเบอร์เกอร์ เครื่องดื่ม หรือของหวาน เราพร้อมเสิร์ฟความอร่อยถึงมือคุณ</p>
+            <div class="cta-group">
+                <a href="#menu" class="btn btn-primary">สั่งซื้อตอนนี้</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Menu Section -->
+    <section class="menu-section" id="menu">
+        <div class="section-header">
+            <h2>รายการเมนูของเรา</h2>
+        </div>
+        
+        <!-- Category Selection -->
+        <div class="category-container">
+            <button class="cat-btn active" onclick="filterCategory('all')">ทั้งหมด</button>
+            <button class="cat-btn" onclick="filterCategory('food')">อาหาร</button>
+            <button class="cat-btn" onclick="filterCategory('drink')">เครื่องดื่ม</button>
+            <button class="cat-btn" onclick="filterCategory('dessert')">ของหวาน</button>
+        </div>
+
+        <div class="menu-grid" id="burger-menu">
+            <!-- Items will be injected here -->
+        </div>
+    </section>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-sidebar" id="cart-sidebar">
+        <div class="cart-header">
+            <h3>ตะกร้าสินค้า</h3>
+            <span class="close-cart" id="close-cart">&times;</span>
+        </div>
+        <div class="cart-items" id="cart-items-container"></div>
+        <div class="cart-footer">
+            <div class="total">
+                <span>ราคารวม</span>
+                <span id="cart-total">฿0</span>
+            </div>
+            <button class="checkout-btn" id="checkout-trigger">สั่งซื้อสินค้า</button>
+        </div>
+    </div>
+
+    <!-- Customization Modal -->
+    <div class="modal" id="custom-modal">
+        <div class="modal-content">
+            <span class="modal-close" id="close-custom">&times;</span>
+            <h3 id="modal-product-name">ปรับแต่งเมนูของคุณ</h3>
+            
+            <!-- Food Options (จะแสดงเมื่อเป็นอาหาร) -->
+            <div id="food-options" class="options-group" style="display: none;">
+                <p style="margin-bottom: 10px; font-weight: 600;">ตัวเลือกเพิ่มเติม:</p>
+                <label><input type="checkbox" id="opt-no-veggie"> ไม่ใส่ผัก</label>
+                <label><input type="checkbox" id="opt-no-sauce"> ไม่ใส่ซอส</label>
+                <label><input type="checkbox" id="opt-extra-cheese"> เพิ่มชีส (+฿20)</label>
+            </div>
+
+            <!-- Drink Options (จะแสดงเมื่อเป็นเครื่องดื่ม) -->
+            <div id="drink-options" class="options-group" style="display: none;">
+                <p style="margin-bottom: 10px; font-weight: 600;">ระดับความหวาน:</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <label><input type="radio" name="sweetness" value="0%"> 0% (ไม่หวาน)</label>
+                    <label><input type="radio" name="sweetness" value="25%"> 25% (หวานน้อย)</label>
+                    <label><input type="radio" name="sweetness" value="50%" checked> 50% (ปกติ)</label>
+                    <label><input type="radio" name="sweetness" value="100%"> 100% (หวานมาก)</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>คำขอพิเศษเพิ่มเติม</label>
+                <textarea id="opt-note" placeholder="เช่น ไม่ใส่หอมใหญ่, ขอแยกน้ำแข็ง"></textarea>
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" id="confirm-add">เพิ่มลงตะกร้า</button>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div class="modal" id="checkout-modal">
+        <div class="modal-content" style="max-width: 620px;">
+            <span class="modal-close" id="close-checkout">&times;</span>
+            <h3>ยืนยันการสั่งซื้อ</h3>
+
+            <!-- Customer Info -->
+            <div class="form-group">
+                <label>ชื่อผู้รับ</label>
+                <input type="text" id="cust-name" placeholder="ชื่อ-นามสกุล">
+            </div>
+            <div class="form-group">
+                <label>เบอร์โทรศัพท์</label>
+                <input type="tel" id="cust-phone" placeholder="08x-xxxxxxx">
+            </div>
+            <div class="form-group">
+                <label>ที่อยู่จัดส่ง</label>
+                <textarea id="cust-address" placeholder="บ้านเลขที่, ชั้น, หมู่บ้าน, ซอย, ถนน..."></textarea>
+            </div>
+
+            <!-- QR Payment Section -->
+            <div class="qr-payment-section">
+                <div class="qr-payment-header">
+                    <i data-lucide="qr-code" style="width:20px;height:20px;color:var(--primary);"></i>
+                    <span>ชำระเงินผ่าน PromptPay</span>
+                </div>
+                <div class="qr-payment-body">
+                    <div class="qr-image-wrap">
+                        <img src="assets/promptpay_qr.png" alt="QR Code PromptPay" id="qr-code-img">
+                        <p class="qr-label">สแกนเพื่อชำระเงิน</p>
+                    </div>
+                    <div class="qr-bank-info">
+                        <div class="bank-info-row">
+                            <span class="bank-info-label">ธนาคาร</span>
+                            <span class="bank-info-value">กรุงไทย (Khrungthai)</span>
+                        </div>
+                        <div class="bank-info-row">
+                            <span class="bank-info-label">ชื่อบัญชี</span>
+                            <span class="bank-info-value">นิรันดร์ อาเเว</span>
+                        </div>
+                        <div class="bank-info-row">
+                            <span class="bank-info-label">พร้อมเพย์</span>
+                            <span class="bank-info-value highlight">098-765-4321</span>
+                        </div>
+                        <p class="qr-note">กรุณาโอนเงินและแนบสลิปด้านล่าง<br>ก่อนกดยืนยันการสั่งซื้อ</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slip Upload -->
+            <div class="form-group slip-upload-group">
+                <label>แนบสลิปการโอนเงิน <span style="color:#ef4444;">*</span></label>
+                <div class="slip-drop-zone" id="slip-drop-zone" onclick="document.getElementById('slip-file').click()">
+                    <input type="file" id="slip-file" accept="image/*" style="display:none;">
+                    <div class="slip-placeholder" id="slip-placeholder">
+                        <i data-lucide="upload-cloud" style="width:36px;height:36px;color:var(--primary);margin-bottom:10px;"></i>
+                        <p>คลิกหรือลากรูปสลิปมาวางที่นี่</p>
+                        <span>รองรับ JPG, PNG, WEBP (สูงสุด 5MB)</span>
+                    </div>
+                    <div class="slip-preview-wrap" id="slip-preview-wrap" style="display:none;">
+                        <img id="slip-preview-img" src="" alt="สลิป">
+                        <button type="button" class="slip-remove-btn" id="slip-remove-btn" onclick="event.stopPropagation(); removeSlip()">
+                            <i data-lucide="x" style="width:14px;height:14px;"></i> เอาออก
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%;" id="submit-order">✔ ยืนยันและชำระเงิน</button>
+        </div>
+    </div>
+
+    <!-- Order Success Popup -->
+    <div class="modal" id="success-popup">
+        <div class="modal-content success-popup-content">
+            <div class="success-icon-wrap">
+                <div class="success-circle">
+                    <svg class="checkmark-svg" viewBox="0 0 58 58" fill="none">
+                        <polyline class="checkmark-check" points="12,30 24,42 46,18"/>
+                    </svg>
+                </div>
+            </div>
+            <h3>สั่งซื้อสำเร็จแล้ว! 🎉</h3>
+            <p class="success-msg">
+                ออเดอร์ของคุณถูกส่งไปที่ร้านเรียบร้อยแล้ว<br>
+                กรุณารอรับสินค้าในไม่ช้า
+            </p>
+            <span class="success-order-id" id="success-order-ref">หมายเลขออเดอร์: #000000</span>
+            
+            <div style="margin-top: 20px; background: #f9f9f9; padding: 15px; border-radius: 15px; border: 1px solid #eee;">
+                <p style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">คุณสามารถติดตามสถานะอาหารได้ที่ลิงก์นี้:</p>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="track-url-input" readonly style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 0.8rem; background: #fff;">
+                    <button class="btn btn-outline" id="copy-track-btn" style="padding: 8px 15px; font-size: 0.8rem; border-radius: 8px;">คัดลอก</button>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-outline" style="flex: 1; padding: 14px; border-radius: 14px;" id="success-popup-close">กลับหน้าหลัก</button>
+                <a id="track-order-btn" href="#" class="btn btn-primary" style="flex: 1; padding: 14px; border-radius: 14px; text-decoration: none;">ติดตามออเดอร์</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Checkout for Mobile -->
+    <button class="mobile-floating-checkout" id="mobile-checkout-btn">
+        <div class="floating-info">
+            <span class="floating-count" id="floating-count">0</span>
+            <span style="font-size: 0.75rem; opacity: 0.8;">รายการ</span>
+        </div>
+        <span class="floating-label">ชำระเงินทันที</span>
+        <span class="floating-price" id="floating-total">฿0</span>
+    </button>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script>
+    
+    <!-- Footer -->
+    <footer style="padding: 40px 8%; background: #fdfdfd; border-top: 1px solid #eee; text-align: center;">
+        <p style="color: #888; font-size: 0.9rem;">&copy; 2026 homieboy. All rights reserved.</p>
+        <div style="margin-top: 10px;">
+            <a href="login.html" style="color: #ddd; text-decoration: none; font-size: 0.75rem; transition: 0.3s;">Admin Login</a>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

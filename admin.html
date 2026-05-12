@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello Burger Admin | Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --sidebar-width: 260px;
+        }
+        body {
+            background: #f4f7f6;
+            display: flex;
+            min-height: 100vh;
+        }
+        /* Sidebar */
+        .admin-sidebar {
+            width: var(--sidebar-width);
+            background: var(--white);
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            padding: 30px 20px;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+        .sidebar-logo {
+            margin-bottom: 50px;
+            padding-left: 10px;
+        }
+        .admin-nav {
+            flex: 1;
+        }
+        .admin-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 25px;
+            border-radius: 18px;
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 15px;
+            transition: var(--transition);
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .admin-nav-item:hover {
+            background: #fff;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            color: var(--primary);
+        }
+        .admin-nav-item.active {
+            background: #fff;
+            color: var(--primary);
+            border-color: rgba(255, 107, 0, 0.2);
+            box-shadow: 0 10px 30px rgba(255, 107, 0, 0.1);
+        }
+        .admin-nav-item i {
+            width: 22px;
+            height: 22px;
+        }
+        .logout-btn {
+            margin-top: auto;
+            color: #ff5252;
+            border: 1px solid #ff5252;
+        }
+        /* Main Content */
+        .admin-main {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 40px 50px;
+        }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+        .dashboard-header h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        .stat-card {
+            background: var(--white);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.02);
+            border: 1px solid #f0f0f0;
+        }
+        .stat-card h5 {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        /* Lists */
+        .admin-card {
+            background: var(--white);
+            border-radius: 20px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            border: 1px solid #f0f0f0;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 0.5fr;
+            align-items: center;
+            transition: var(--transition);
+        }
+        .admin-card:hover {
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+        }
+        .product-img {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            background: #f9f9f9;
+            object-fit: contain;
+            margin-right: 15px;
+        }
+        .action-btns {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .btn-sm {
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+        }
+        .btn-edit { background: #e3f2fd; color: #1976d2; }
+        .btn-delete { background: #ffebee; color: #d32f2f; }
+
+        @media (max-width: 992px) {
+            .admin-sidebar { display: none; }
+            .admin-main { margin-left: 0; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation (Subtle) -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-logo">
+            <a href="index.html" class="logo" style="font-size: 1.4rem;">
+                <i data-lucide="utensils-crossed"></i>
+                Homie Boy
+            </a>
+        </div>
+        <button class="btn btn-outline logout-btn" onclick="logout()">
+            <i data-lucide="log-out" style="width: 18px;"></i> ออกจากระบบ
+        </button>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="admin-main">
+        <div class="dashboard-header" style="justify-content: center; gap: 20px;">
+            <div class="admin-nav-item active" onclick="switchTab('orders')" id="nav-orders" style="margin-bottom: 0;">
+                <i data-lucide="shopping-cart"></i> รายการสั่งซื้อ
+            </div>
+            <div class="admin-nav-item" onclick="switchTab('products')" id="nav-products" style="margin-bottom: 0;">
+                <i data-lucide="package"></i> จัดการเมนู
+            </div>
+            <div id="action-area">
+                <!-- Add Menu button will appear here -->
+            </div>
+        </div>
+
+        <!-- Orders Section -->
+        <section id="orders-section" class="admin-section active">
+            <div class="stats-grid">
+                <div class="stat-card"><h5>ออเดอร์วันนี้</h5><div class="value" id="today-orders">0</div></div>
+                <div class="stat-card"><h5>รายได้รวม</h5><div class="value" id="total-revenue">฿0</div></div>
+            </div>
+            <div id="admin-order-list">
+                <!-- Orders injected here -->
+            </div>
+        </section>
+
+        <!-- Products Section -->
+        <section id="products-section" class="admin-section" style="display: none;">
+            <div id="admin-product-list">
+                <!-- Products injected here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Product Modal (Add/Edit) -->
+    <div class="modal" id="product-modal">
+        <div class="modal-content">
+            <span class="modal-close" id="close-product-modal">&times;</span>
+            <h3 id="modal-title">ข้อมูลเมนู</h3>
+            <input type="hidden" id="edit-prod-id">
+            <div class="form-group">
+                <label>ชื่อเมนู</label>
+                <input type="text" id="prod-name">
+            </div>
+            <div class="form-group">
+                <label>ราคา (บาท)</label>
+                <input type="number" id="prod-price">
+            </div>
+            <div class="form-group">
+                <label>หมวดหมู่</label>
+                <select id="prod-category" style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ddd;">
+                    <option value="food">อาหาร</option>
+                    <option value="drink">เครื่องดื่ม</option>
+                    <option value="dessert">ของหวาน</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>รายละเอียด</label>
+                <textarea id="prod-desc"></textarea>
+            </div>
+            <div class="form-group">
+                <label>ลิงก์รูปภาพ (URL)</label>
+                <input type="text" id="prod-image">
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" id="save-product">บันทึกข้อมูล</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script>
+
+    <!-- Order Details Modal -->
+    <div class="modal" id="order-details-modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="modal-close" id="close-order-modal">&times;</span>
+            <h3>รายละเอียดออเดอร์</h3>
+            <div id="order-details-content" style="margin-top: 20px;">
+                <!-- Full order details will be injected here -->
+            </div>
+            <button class="btn btn-outline" style="width: 100%; margin-top: 20px;" id="close-order-modal-btn">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification (Delete Success) -->
+    <div id="toast-notification" class="toast-notification" role="status" aria-live="polite">
+        <div class="toast-icon success" id="toast-icon">✓</div>
+        <div class="toast-body">
+            <div class="toast-title" id="toast-title">สำเร็จ!</div>
+            <div class="toast-subtitle" id="toast-subtitle">ดำเนินการเรียบร้อยแล้ว</div>
+        </div>
+        <div class="toast-progress" id="toast-progress"></div>
+    </div>
+
+    <script src="admin.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

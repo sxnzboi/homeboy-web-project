@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homie Boy | ติดตามออเดอร์</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background: var(--background);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 40px 16px 80px;
+        }
+
+        .track-header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .track-header .logo {
+            font-size: 1.5rem;
+            margin-bottom: 6px;
+            display: inline-flex;
+        }
+
+        .track-header h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+        }
+
+        .track-header p {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        /* Card */
+        .track-card {
+            background: var(--white);
+            border-radius: 28px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.07);
+            padding: 36px;
+            width: 100%;
+            max-width: 540px;
+        }
+
+        /* Loading */
+        .track-loading {
+            text-align: center;
+            padding: 60px 0;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,107,0,0.15);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Error */
+        .track-error {
+            text-align: center;
+            padding: 40px 0;
+            display: none;
+        }
+
+        .error-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: #fff1f1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 18px;
+            font-size: 2rem;
+        }
+
+        /* Order Info */
+        .track-content { display: none; }
+
+        .order-id-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,107,0,0.08);
+            color: var(--primary);
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+
+        /* Status Timeline */
+        .status-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin-bottom: 30px;
+        }
+
+        .status-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            position: relative;
+        }
+
+        .status-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 19px;
+            top: 42px;
+            width: 2px;
+            height: calc(100% - 18px);
+            background: #eee;
+            z-index: 0;
+        }
+
+        .status-step.done:not(:last-child)::after {
+            background: linear-gradient(to bottom, var(--primary), rgba(255,107,0,0.3));
+        }
+
+        .step-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #eee;
+            background: #f9f9f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            z-index: 1;
+            transition: all 0.4s ease;
+            font-size: 1rem;
+        }
+
+        .status-step.done .step-icon {
+            background: linear-gradient(135deg, #ff6b00, #ff9a3c);
+            border-color: var(--primary);
+            box-shadow: 0 6px 20px rgba(255,107,0,0.3);
+            color: white;
+        }
+
+        .status-step.current .step-icon {
+            background: #fff8f5;
+            border-color: var(--primary);
+            animation: pulse-step 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-step {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,0,0.4); }
+            50%       { box-shadow: 0 0 0 8px rgba(255,107,0,0); }
+        }
+
+        /* Cancelled style */
+        .status-step.cancelled .step-icon {
+            background: #fff1f1;
+            border-color: #ef4444;
+        }
+
+        .step-info {
+            padding: 8px 0 24px;
+        }
+
+        .step-name {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #bbb;
+            transition: color 0.3s;
+        }
+
+        .status-step.done .step-name,
+        .status-step.current .step-name { color: var(--text); }
+        .status-step.cancelled .step-name { color: #ef4444; }
+
+        .step-desc {
+            font-size: 0.8rem;
+            color: #ccc;
+            margin-top: 3px;
+            transition: color 0.3s;
+        }
+
+        .status-step.done .step-desc,
+        .status-step.current .step-desc { color: var(--text-light); }
+
+        /* Current status badge */
+        .current-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background: rgba(255,107,0,0.1);
+            color: var(--primary);
+            margin-top: 4px;
+        }
+
+        .current-badge.green {
+            background: rgba(34,197,94,0.1);
+            color: #16a34a;
+        }
+
+        .current-badge.red {
+            background: rgba(239,68,68,0.1);
+            color: #dc2626;
+        }
+
+        /* Divider */
+        .track-divider {
+            border: none;
+            border-top: 1px solid #f0f0f0;
+            margin: 20px 0;
+        }
+
+        /* Customer info */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .info-cell {
+            background: #f9f9f9;
+            padding: 14px;
+            border-radius: 14px;
+        }
+
+        .info-cell .label {
+            font-size: 0.73rem;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+
+        .info-cell .value {
+            font-weight: 700;
+            font-size: 0.92rem;
+        }
+
+        .info-cell.full {
+            grid-column: 1 / -1;
+        }
+
+        /* Items */
+        .order-items-section {
+            background: #f9f9f9;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .order-items-section .label {
+            font-size: 0.73rem;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+
+        .order-item-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+        }
+
+        .order-item-row:last-of-type { border-bottom: none; }
+
+        .order-total-row {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 800;
+            font-size: 1rem;
+            padding-top: 10px;
+            color: var(--primary);
+        }
+
+        /* Real-time indicator */
+        .realtime-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78rem;
+            color: #22c55e;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .realtime-dot {
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: blink 1.5s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.3; }
+        }
+
+        /* Back button */
+        .back-home-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-light);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            margin-top: 24px;
+            transition: color 0.2s;
+        }
+
+        .back-home-btn:hover { color: var(--primary); }
+
+        /* Cancelled banner */
+        .cancelled-banner {
+            background: #fff1f1;
+            border: 1px solid #fca5a5;
+            border-radius: 14px;
+            padding: 16px;
+            text-align: center;
+            color: #dc2626;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        /* Completed banner */
+        .completed-banner {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 14px;
+            padding: 16px;
+            text-align: center;
+            color: #16a34a;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .track-card { padding: 24px 18px; }
+            .info-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="track-header">
+        <a href="index.html" class="logo">
+            <i data-lucide="utensils-crossed" style="width:22px;height:22px;margin-right:8px;"></i>
+            Homie Boy
+        </a>
+        <h1>ติดตามออเดอร์ของคุณ</h1>
+        <p>อัปเดตสถานะแบบ Real-time</p>
+    </div>
+
+    <!-- Main Card -->
+    <div class="track-card">
+
+        <!-- Loading state -->
+        <div class="track-loading" id="track-loading">
+            <div class="spinner"></div>
+            <p style="color:var(--text-light); font-size:0.9rem;">กำลังโหลดข้อมูลออเดอร์...</p>
+        </div>
+
+        <!-- Error state -->
+        <div class="track-error" id="track-error">
+            <div class="error-icon">😕</div>
+            <h3 style="font-size:1.2rem; margin-bottom:8px;">ไม่พบออเดอร์</h3>
+            <p style="color:var(--text-light); font-size:0.88rem; line-height:1.6;">
+                ไม่พบออเดอร์ที่ตรงกับ ID นี้<br>
+                กรุณาตรวจสอบ link อีกครั้ง
+            </p>
+        </div>
+
+        <!-- Content -->
+        <div class="track-content" id="track-content">
+
+            <!-- Real-time badge -->
+            <div class="realtime-badge" id="realtime-badge" style="display:none;">
+                <div class="realtime-dot"></div>
+                อัปเดตแบบ Real-time
+            </div>
+
+            <!-- Order ID badge -->
+            <div class="order-id-badge">
+                <i data-lucide="hash" style="width:14px;height:14px;"></i>
+                <span id="display-order-id">-</span>
+            </div>
+
+            <!-- Completed / Cancelled banners -->
+            <div class="completed-banner" id="completed-banner">
+                🎉 ออเดอร์สำเร็จแล้ว! ขอบคุณที่อุดหนุนนะครับ
+            </div>
+            <div class="cancelled-banner" id="cancelled-banner">
+                ❌ ออเดอร์นี้ถูกยกเลิกแล้ว กรุณาติดต่อร้านเพื่อสอบถาม <br>
+                เบอร์โทร 0946911931 IG:homieboy.eat
+            </div>
+
+            <!-- Status Timeline -->
+            <div class="status-timeline" id="status-timeline">
+                <!-- Step 1 -->
+                <div class="status-step" id="step-pending">
+                    <div class="step-icon">📋</div>
+                    <div class="step-info">
+                        <div class="step-name">รอดำเนินการ</div>
+                        <div class="step-desc">ได้รับออเดอร์ของคุณแล้ว</div>
+                    </div>
+                </div>
+                <!-- Step 2 -->
+                <div class="status-step" id="step-preparing">
+                    <div class="step-icon">👨‍🍳</div>
+                    <div class="step-info">
+                        <div class="step-name">กำลังเตรียม</div>
+                        <div class="step-desc">ทางร้านกำลังเตรียมออเดอร์ของคุณ</div>
+                    </div>
+                </div>
+                <!-- Step 3 -->
+                <div class="status-step" id="step-done">
+                    <div class="step-icon">✅</div>
+                    <div class="step-info">
+                        <div class="step-name">สำเร็จแล้ว</div>
+                        <div class="step-desc">ออเดอร์เสร็จสิ้นเรียบร้อย</div>
+                    </div>
+                </div>
+                <!-- Cancelled (hidden by default) -->
+                <div class="status-step" id="step-cancelled" style="display:none;">
+                    <div class="step-icon cancelled">❌</div>
+                    <div class="step-info">
+                        <div class="step-name" style="color:#ef4444;">ยกเลิก</div>
+                        <div class="step-desc">ออเดอร์ถูกยกเลิก</div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="track-divider">
+
+            <!-- Customer Info -->
+            <div class="info-grid">
+                <div class="info-cell">
+                    <div class="label">ชื่อลูกค้า</div>
+                    <div class="value" id="track-name">-</div>
+                </div>
+                <div class="info-cell">
+                    <div class="label">เบอร์โทร</div>
+                    <div class="value" id="track-phone">-</div>
+                </div>
+                <div class="info-cell full">
+                    <div class="label">ที่อยู่จัดส่ง</div>
+                    <div class="value" id="track-address" style="font-weight:600; line-height:1.5;"></div>
+                </div>
+            </div>
+
+            <!-- Items -->
+            <div class="order-items-section">
+                <div class="label">รายการสินค้า</div>
+                <div id="track-items"></div>
+                <div class="order-total-row">
+                    <span>ยอดรวมทั้งสิ้น</span>
+                    <span id="track-total">฿0</span>
+                </div>
+            </div>
+
+            <!-- Timestamp -->
+            <p style="font-size:0.76rem; color:#bbb; text-align:right;" id="track-time"></p>
+        </div>
+
+    </div>
+
+    <!-- Back link -->
+    <a href="index.html" class="back-home-btn">
+        <i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
+        กลับหน้าหลัก
+    </a>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+        lucide.createIcons();
+
+        // ---- Detect Firebase & Firestore ----
+        // db ถูกประกาศไว้แล้วใน firebase-config.js
+        let useFirebase = false;
+
+        try {
+            if (typeof firebase !== 'undefined' && firebase.apps.length && firebaseConfig.apiKey.indexOf("AIza") === 0) {
+                useFirebase = true;
+                console.log("Tracking: Firebase connected and ready.");
+            }
+        } catch(e) {
+            console.warn("Tracking: Firebase check failed, using fallback.", e);
+        }
+
+        // ---- Read Order ID from URL ----
+        const params  = new URLSearchParams(window.location.search);
+        const orderId = params.get('id');
+
+        const loadingEl   = document.getElementById('track-loading');
+        const errorEl     = document.getElementById('track-error');
+        const contentEl   = document.getElementById('track-content');
+        const realtimeBadge = document.getElementById('realtime-badge');
+
+        if (!orderId) {
+            showError("กรุณาระบุหมายเลขออเดอร์");
+        } else {
+            loadOrder(orderId);
+        }
+
+        function loadOrder(id) {
+            if (useFirebase && db) {
+                realtimeBadge.style.display = 'flex';
+                // Real-time listener from Firestore
+                db.collection('orders').doc(id).onSnapshot(doc => {
+                    if (!doc.exists) { 
+                        showError("ไม่พบข้อมูลออเดอร์ในระบบ"); 
+                        return; 
+                    }
+                    renderOrder({ id: doc.id, ...doc.data() });
+                }, (err) => {
+                    console.error("Firestore Error:", err);
+                    showError("เกิดข้อผิดพลาดในการโหลดข้อมูล");
+                });
+            } else {
+                // LocalStorage fallback
+                const fetchLocal = () => {
+                    const orders = JSON.parse(localStorage.getItem('orders')) || [];
+                    const order  = orders.find(o => String(o.id) === String(id));
+                    if (!order) { 
+                        showError("ไม่พบข้อมูลออเดอร์ในเครื่องนี้"); 
+                        return; 
+                    }
+                    renderOrder(order);
+                };
+
+                fetchLocal();
+                // Poll every 4s for status changes if not using Firebase
+                setInterval(fetchLocal, 4000);
+            }
+        }
+
+        function renderOrder(order) {
+            loadingEl.style.display   = 'none';
+            errorEl.style.display     = 'none';
+            contentEl.style.display   = 'block';
+
+            // Order ID badge (handle both Firebase IDs and Timestamps)
+            const idStr = String(order.id);
+            const shortId = idStr.length > 10 ? idStr.slice(-6).toUpperCase() : idStr;
+            document.getElementById('display-order-id').textContent = `ออเดอร์ #${shortId}`;
+            document.title = `ออเดอร์ #${shortId} | Homie Boy`;
+
+            updateTimeline(order.status);
+
+            document.getElementById('track-name').textContent    = order.customerName || '-';
+            document.getElementById('track-phone').textContent   = order.phone || '-';
+            document.getElementById('track-address').textContent = order.address || '-';
+
+            const itemsEl = document.getElementById('track-items');
+            itemsEl.innerHTML = (order.items || []).map(i => `
+                <div class="order-item-row">
+                    <span>${i.name}</span>
+                    <span style="font-weight:700; color:var(--primary);">฿${i.finalPrice}</span>
+                </div>
+            `).join('');
+            document.getElementById('track-total').textContent = `฿${Number(order.total).toLocaleString()}`;
+
+            if (order.timestamp) {
+                let date;
+                if (order.timestamp.toDate) date = order.timestamp.toDate();
+                else date = new Date(order.timestamp);
+                
+                document.getElementById('track-time').textContent = `🕐 สั่งซื้อเมื่อ ${date.toLocaleString('th-TH')}`;
+            }
+
+            lucide.createIcons();
+        }
+
+        function updateTimeline(status) {
+            const steps = { 'รอดำเนินการ': 1, 'กำลังเตรียม': 2, 'สำเร็จแล้ว': 3, 'ยกเลิก': -1 };
+            const currentStep = steps[status] ?? 1;
+
+            const completedBanner = document.getElementById('completed-banner');
+            const cancelledBanner = document.getElementById('cancelled-banner');
+            const stepCancelled   = document.getElementById('step-cancelled');
+            const stepDone        = document.getElementById('step-done');
+
+            // Reset
+            ['step-pending', 'step-preparing', 'step-done'].forEach(id => {
+                const el = document.getElementById(id);
+                el.className = 'status-step';
+                el.style.display = 'flex';
+            });
+            stepCancelled.style.display   = 'none';
+            completedBanner.style.display = 'none';
+            cancelledBanner.style.display = 'none';
+
+            if (currentStep === -1) {
+                document.getElementById('step-pending').classList.add('done');
+                stepCancelled.style.display   = 'flex';
+                stepCancelled.classList.add('cancelled');
+                stepDone.style.display        = 'none';
+                cancelledBanner.style.display = 'block';
+            } else {
+                const stepIds = ['step-pending', 'step-preparing', 'step-done'];
+                stepIds.forEach((id, idx) => {
+                    const step = idx + 1;
+                    const el   = document.getElementById(id);
+                    if (step < currentStep)       el.classList.add('done');
+                    else if (step === currentStep) el.classList.add('current');
+                });
+                if (currentStep === 3) completedBanner.style.display = 'block';
+            }
+        }
+
+        function showError(msg) {
+            loadingEl.style.display = 'none';
+            errorEl.style.display   = 'block';
+            if (msg) errorEl.querySelector('p').textContent = msg;
+        }
+    </script>
+</body>
+</html>
