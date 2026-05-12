@@ -1,10 +1,4 @@
 // --- Fallback & Initial Data ---
-const initialMenu = [
-    { id: 1, name: 'Classic Burger', price: 159, description: 'เนื้อพรีเมียม ผักสด และซอสสูตรลับ', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=200', category: 'food' },
-    { id: 2, name: 'Double Cheese', price: 189, description: 'ชีส 2 ชั้น พร้อมหัวหอมเจียวทอด', image: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&q=80&w=200', category: 'food' },
-    { id: 3, name: 'Iced Coffee', price: 65, description: 'กาแฟอาราบิก้าคั่วกลาง รสชาตินุ่มนวล', image: 'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&q=80&w=200', category: 'drink' }
-];
-
 let menuItems = [];
 let cart = [];
 let pendingProduct = null;
@@ -23,7 +17,7 @@ try {
 }
 
 // DOM Elements
-const menuGrid = document.getElementById('burger-menu');
+const menuGrid = document.getElementById('menu-grid');
 const cartSidebar = document.getElementById('cart-sidebar');
 const cartItemsContainer = document.getElementById('cart-items-container');
 const cartTotalElement = document.getElementById('cart-total');
@@ -79,11 +73,10 @@ function loadMenu() {
     if (useFirebase) {
         db.collection('menu').onSnapshot((snapshot) => {
             menuItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (menuItems.length === 0) seedInitialMenu();
             renderMenu();
         });
     } else {
-        menuItems = JSON.parse(localStorage.getItem('menuItems')) || initialMenu;
+        menuItems = JSON.parse(localStorage.getItem('menuItems')) || [];
         renderMenu();
     }
 }
@@ -100,17 +93,23 @@ function renderMenu(filter = 'all') {
     if (!menuGrid) return;
     
     if (filtered.length === 0) {
-        menuGrid.innerHTML = '<p style="text-align: center; grid-column: 1/-1; padding: 50px;">กำลังโหลดเมนู...</p>';
+        menuGrid.innerHTML = '<p style="text-align: center; grid-column: 1/-1; padding: 50px; color: #888;">ไม่พบรายการเมนูในหมวดหมู่นี้</p>';
         return;
     }
 
     menuGrid.innerHTML = filtered.map(item => `
-        <div class="burger-card">
-            <img src="${item.image}" alt="${item.name}">
-            <h3>${item.name}</h3>
-            <p>${item.description}</p>
-            <span class="price-tag">฿${item.price}</span>
-            <button class="add-to-cart" onclick="openCustomModal('${item.id}')">เพิ่มลงตะกร้า</button>
+        <div class="menu-card">
+            <div class="menu-card-img-wrap">
+                <img src="${item.image}" alt="${item.name}" onerror="this.src='https://images.unsplash.com/photo-1586816001966-79b736744398?auto=format&fit=crop&q=80&w=600'">
+            </div>
+            <div class="menu-card-content">
+                <div class="menu-card-header">
+                    <h3 class="menu-card-title">${item.name}</h3>
+                    <span class="menu-card-price">฿${item.price}</span>
+                </div>
+                <p class="menu-card-desc">${item.description}</p>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 15px;" onclick="openCustomModal('${item.id}')">เพิ่มลงตะกร้า</button>
+            </div>
         </div>
     `).join('');
 }

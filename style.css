@@ -1261,3 +1261,143 @@ nav.scrolled {
     .floating-label { font-size: 1rem; }
     .floating-price { font-size: 1.1rem; }
 }
+
+/* ปรับสมดุลขนาดรูปภาพเมนู */
+.menu-card-img-wrap {
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    border-radius: 20px 20px 0 0;
+}
+
+.menu-card-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.menu-card:hover .menu-card-img-wrap img {
+    transform: scale(1.1);
+}
+
+/* --- FINAL FIX FOR MENU LAYOUT --- */
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+    padding: 20px 0;
+}
+
+.menu-card {
+    background: var(--white);
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.menu-card-img-wrap {
+    width: 100%;
+    height: 220px;
+    overflow: hidden;
+    position: relative;
+}
+
+.menu-card-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.menu-card-content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.menu-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.menu-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+}
+
+.menu-card-price {
+    font-weight: 800;
+    color: var(--primary);
+    font-size: 1.15rem;
+}
+
+.menu-card-desc {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 20px;
+    flex-grow: 1;
+}
+
+.menu-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.menu-card:hover .menu-card-img-wrap img {
+    transform: scale(1.1);
+}
+
+/* --- Responsive 2 Columns for Mobile --- */
+@media (max-width: 600px) {
+    .menu-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        padding: 10px;
+    }
+
+    .menu-card {
+        border-radius: 16px;
+    }
+
+    .menu-card-img-wrap {
+        height: 140px; /* ลดความสูงรูปลงเพื่อให้เห็น 2 ใบชัดๆ */
+    }
+
+    .menu-card-content {
+        padding: 12px;
+    }
+
+    .menu-card-title {
+        font-size: 0.95rem;
+        margin-bottom: 4px;
+    }
+
+    .menu-card-price {
+        font-size: 0.9rem;
+    }
+
+    .menu-card-desc {
+        font-size: 0.75rem;
+        margin-bottom: 12px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* จำกัดบรรทัดคำอธิบายไม่ให้ยาวเกินไปในมือถือ */
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .btn-primary {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+}

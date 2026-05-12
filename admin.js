@@ -62,7 +62,10 @@ window.switchTab = function(tab) {
     document.getElementById(`${tab}-section`).style.display = 'block';
     
     if(tab === 'products') {
-        document.getElementById('action-area').innerHTML = `<button type="button" class="btn btn-primary btn-sm" onclick="openProductModal()">+ เพิ่มเมนูใหม่</button>`;
+        document.getElementById('action-area').innerHTML = `
+            <button type="button" class="btn btn-primary btn-sm" onclick="openProductModal()">+ เพิ่มเมนูใหม่</button>
+            <button type="button" class="btn btn-delete btn-sm" onclick="clearAllProducts()" style="margin-left: 10px;">🗑️ ล้างเมนูทั้งหมด</button>
+        `;
         renderProducts();
     } else {
         document.getElementById('action-area').innerHTML = '';
@@ -165,7 +168,7 @@ function renderProducts() {
             displayProducts(currentProducts);
         });
     } else {
-        currentProducts = JSON.parse(localStorage.getItem('menuItems')) || initialMenu;
+        currentProducts = JSON.parse(localStorage.getItem('menuItems')) || [];
         displayProducts(currentProducts);
     }
 }
@@ -180,35 +183,45 @@ function displayProducts(products) {
             </div>
             <div style="font-weight:600; color:var(--primary);">฿${p.price}</div>
             <div class="action-btns">
-                <button type="button" class="btn-sm btn-edit-prod" data-id="${p.id}">แก้ไข</button>
-                <button type="button" class="btn-sm btn-delete-prod" data-id="${p.id}">ลบ</button>
+                <button type="button" class="btn-sm btn-edit btn-edit-prod" data-id="${p.id}">แก้ไข</button>
+                <button type="button" class="btn-sm btn-delete btn-delete-prod" data-id="${p.id}">ลบ</button>
             </div>
         </div>
     `).join('');
 }
 
-productListContainer.addEventListener('click', (e) => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    const id = btn.getAttribute('data-id');
-    if (!id) return;
+// --- Product Event Listeners ---
+if (productListContainer) {
+    productListContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        
+        const id = btn.getAttribute('data-id');
+        console.log("Product Button Clicked:", btn.className, "ID:", id);
+        
+        if (!id) return;
 
-    if (btn.classList.contains('btn-delete-prod')) {
-        if(!confirm('ยืนยันการลบเมนูนี้?')) return;
-        if(useFirebase) {
-            db.collection('menu').doc(id).delete()
-                .then(() => showToast('ลบเมนูสำเร็จ! 🗑️', 'เมนูถูกลบออกจากระบบแล้ว', 'success'))
-                .catch(err => showToast('เกิดข้อผิดพลาด', err.message, 'error'));
-        } else {
-            const filtered = currentProducts.filter(p => String(p.id) !== String(id));
-            localStorage.setItem('menuItems', JSON.stringify(filtered));
-            renderProducts();
-            showToast('ลบเมนูสำเร็จ! 🗑️', 'เมนูถูกลบออกจากระบบแล้ว', 'success');
+        if (btn.classList.contains('btn-delete-prod')) {
+            if(!confirm('ยืนยันการลบเมนูนี้ออกจากระบบ?')) return;
+            
+            if(useFirebase) {
+                db.collection('menu').doc(id).delete()
+                    .then(() => {
+                        showToast('ลบสำเร็จ! 🗑️', 'เมนูถูกลบแล้ว', 'success');
+                        // ไม่ต้องรัน render ใหม่เพราะ onSnapshot จะจัดการเอง
+                    })
+                    .catch(err => showToast('เกิดข้อผิดพลาด', err.message, 'error'));
+            } else {
+                const filtered = currentProducts.filter(p => String(p.id) !== String(id));
+                localStorage.setItem('menuItems', JSON.stringify(filtered));
+                renderProducts();
+                showToast('ลบสำเร็จ! 🗑️', 'เมนูถูกลบออกจากเครื่องแล้ว', 'success');
+            }
+        } else if (btn.classList.contains('btn-edit-prod')) {
+            editProduct(id);
         }
-    } else if (btn.classList.contains('btn-edit-prod')) {
-        editProduct(id);
-    }
-});
+    });
+}
 
 // Helpers
 function viewOrderDetails(id) {
@@ -299,15 +312,23 @@ function viewOrderDetails(id) {
 }
 
 function editProduct(id) {
+    console.log("Editing product ID:", id);
+    // ค้นหาสินค้าโดยรองรับทั้ง string และ number
     const p = currentProducts.find(prod => String(prod.id) === String(id));
-    if(!p) return;
+    
+    if(!p) {
+        console.error("Product not found for ID:", id);
+        return;
+    }
+
     document.getElementById('modal-title').innerText = 'แก้ไขเมนู';
     document.getElementById('edit-prod-id').value = id;
-    document.getElementById('prod-name').value = p.name;
-    document.getElementById('prod-price').value = p.price;
-    document.getElementById('prod-category').value = p.category;
-    document.getElementById('prod-desc').value = p.description;
-    document.getElementById('prod-image').value = p.image;
+    document.getElementById('prod-name').value = p.name || '';
+    document.getElementById('prod-price').value = p.price || 0;
+    document.getElementById('prod-category').value = p.category || 'food';
+    document.getElementById('prod-desc').value = p.description || '';
+    document.getElementById('prod-image').value = p.image || '';
+    
     document.getElementById('product-modal').classList.add('active');
 }
 
@@ -325,21 +346,36 @@ window.saveProduct = () => {
     const editId = document.getElementById('edit-prod-id').value;
     const data = {
         name: document.getElementById('prod-name').value,
-        price: parseInt(document.getElementById('prod-price').value),
+        price: parseInt(document.getElementById('prod-price').value) || 0,
         category: document.getElementById('prod-category').value,
         description: document.getElementById('prod-desc').value,
         image: document.getElementById('prod-image').value || 'https://images.unsplash.com/photo-1586816001966-79b736744398?auto=format&fit=crop&q=80&w=200'
     };
+
     if(useFirebase) {
-        if(editId) db.collection('menu').doc(editId).update(data); else db.collection('menu').add(data);
+        const promise = editId 
+            ? db.collection('menu').doc(editId).update(data) 
+            : db.collection('menu').add(data);
+            
+        promise.then(() => {
+            showToast('สำเร็จ! ✨', 'บันทึกข้อมูลเมนูเรียบร้อยแล้ว', 'success');
+            document.getElementById('product-modal').classList.remove('active');
+        }).catch(err => {
+            showToast('เกิดข้อผิดพลาด', err.message, 'error');
+        });
     } else {
-        let products = JSON.parse(localStorage.getItem('menuItems')) || initialMenu;
-        if(editId) { const idx = products.findIndex(p => String(p.id) === String(editId)); if(idx!==-1) products[idx] = {...data, id: editId}; }
-        else { products.push({...data, id: Date.now().toString()}); }
+        let products = JSON.parse(localStorage.getItem('menuItems')) || [];
+        if(editId) { 
+            const idx = products.findIndex(p => String(p.id) === String(editId)); 
+            if(idx !== -1) products[idx] = {...data, id: editId}; 
+        } else { 
+            products.push({...data, id: Date.now().toString()}); 
+        }
         localStorage.setItem('menuItems', JSON.stringify(products));
         renderProducts();
+        showToast('สำเร็จ! ✨', 'บันทึกข้อมูลลงเครื่องเรียบร้อยแล้ว', 'success');
+        document.getElementById('product-modal').classList.remove('active');
     }
-    document.getElementById('product-modal').classList.remove('active');
 };
 
 // Events
@@ -357,3 +393,20 @@ function updateStats(orders) {
 // Start
 window.switchTab('orders');
 lucide.createIcons();
+
+// --- Helper to clear all products ---
+window.clearAllProducts = async () => {
+    if(!confirm('🚨 ยันยืนการลบสินค้าทุกอย่างออกจากร้าน? การกระทำนี้ไม่สามารถย้อนกลับได้!')) return;
+    
+    if(useFirebase) {
+        const snap = await db.collection('menu').get();
+        const batch = db.batch();
+        snap.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        showToast('ล้างข้อมูลสำเร็จ! 🗑️', 'เมนูทั้งหมดถูกลบออกจากระบบแล้ว', 'success');
+    } else {
+        localStorage.removeItem('menuItems');
+        renderProducts();
+        showToast('ล้างข้อมูลสำเร็จ! 🗑️', 'เมนูทั้งหมดถูกลบออกจากเครื่องแล้ว', 'success');
+    }
+};
