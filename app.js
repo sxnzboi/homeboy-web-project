@@ -72,7 +72,10 @@ slipDropZone.addEventListener('drop', (e) => {
 function loadMenu() {
     if (useFirebase) {
         db.collection('menu').onSnapshot((snapshot) => {
-            menuItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            menuItems = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return { ...data, id: doc.id };
+            });
             renderMenu();
         });
     } else {

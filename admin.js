@@ -164,7 +164,10 @@ orderListContainer.addEventListener('change', (e) => {
 function renderProducts() {
     if (useFirebase) {
         db.collection('menu').onSnapshot(snap => {
-            currentProducts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            currentProducts = snap.docs.map(doc => {
+                const data = doc.data();
+                return { ...data, id: doc.id }; // บังคับให้ใช้ doc.id ของ Firebase เท่านั้น
+            });
             displayProducts(currentProducts);
         });
     } else {
