@@ -236,18 +236,24 @@
         function loadHistory() {
             const historyList = document.getElementById('delivery-history-list');
 
-            // Listen for completed orders
+            // Listen for completed orders (Removed .orderBy to avoid index requirements)
             db.collection('orders')
                 .where('status', '==', 'สำเร็จแล้ว')
-                .orderBy('deliveredAt', 'desc')
-                .limit(10)
+                .limit(20)
                 .onSnapshot(snap => {
                     if (snap.empty) {
                         historyList.innerHTML = '<p style="text-align: center; color: #aaa; font-size: 0.85rem; padding: 20px;">ยังไม่มีประวัติการส่งของ</p>';
                         return;
                     }
 
-                    historyList.innerHTML = snap.docs.map(doc => {
+                    // Sort by deliveredAt or timestamp locally
+                    const sortedDocs = snap.docs.sort((a, b) => {
+                        const timeA = a.data().deliveredAt?.seconds || 0;
+                        const timeB = b.data().deliveredAt?.seconds || 0;
+                        return timeB - timeA;
+                    }).slice(0, 10); // Take only top 10 after sorting
+
+                    historyList.innerHTML = sortedDocs.map(doc => {
                         const order = doc.data();
                         const idStr = String(doc.id);
                         const shortId = idStr.length > 10 ? idStr.slice(-6).toUpperCase() : idStr;
