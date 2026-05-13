@@ -476,8 +476,15 @@
                 </div>
             </div>
 
+            <!-- Delivery Photo Section -->
+            <div id="delivery-photo-section" style="display: none; margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+                <div style="font-size: 0.73rem; color: #aaa; margin-bottom: 10px;">รูปภาพยืนยันการจัดส่ง</div>
+                <img id="delivery-photo" src="" style="width: 100%; border-radius: 16px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+                <p style="font-size: 0.75rem; color: #16a34a; font-weight: 600; margin-top: 8px; text-align: center;">✅ จัดส่งเรียบร้อยแล้ว</p>
+            </div>
+
             <!-- Timestamp -->
-            <p style="font-size:0.76rem; color:#bbb; text-align:right;" id="track-time"></p>
+            <p style="font-size:0.76rem; color:#bbb; text-align:right; margin-top: 20px;" id="track-time"></p>
         </div>
 
     </div>
@@ -580,6 +587,16 @@
                 </div>
             `).join('');
             document.getElementById('track-total').textContent = `฿${Number(order.total).toLocaleString()}`;
+            
+            // Show Delivery Photo if exists
+            const photoSection = document.getElementById('delivery-photo-section');
+            const photoImg = document.getElementById('delivery-photo');
+            if (order.deliveryPhoto) {
+                photoSection.style.display = 'block';
+                photoImg.src = order.deliveryPhoto;
+            } else {
+                photoSection.style.display = 'none';
+            }
 
             if (order.timestamp) {
                 let date;

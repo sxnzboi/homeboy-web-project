@@ -100,10 +100,17 @@ function displayOrders(orders) {
         return;
     }
 
-    orderListContainer.innerHTML = orders.map(order => `
-        <div class="admin-card" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
+    orderListContainer.innerHTML = orders.map(order => {
+        const idStr = String(order.id);
+        const shortId = idStr.length > 10 ? idStr.slice(-6).toUpperCase() : idStr;
+        
+        return `
+        <div class="admin-card" style="grid-template-columns: 2.5fr 1fr 1fr 1fr;">
             <div>
-                <h4 style="margin: 0;">${order.customerName || 'ลูกค้า'}</h4>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                    <span style="background: #fff0e5; color: #ff6b00; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 800;">#${shortId}</span>
+                    <h4 style="margin: 0;">${order.customerName || 'ลูกค้า'}</h4>
+                </div>
                 <p style="font-size: 0.8rem; color: #888;">ยอดรวม: ฿${order.total}</p>
             </div>
             <div><button type="button" class="btn-sm btn-view" data-id="${order.id}">รายละเอียด</button></div>
@@ -117,7 +124,8 @@ function displayOrders(orders) {
             </div>
             <div class="action-btns"><button type="button" class="btn-sm btn-delete-order" data-id="${order.id}">ลบ</button></div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 
@@ -262,6 +270,9 @@ function viewOrderDetails(id) {
         : '-';
 
     document.getElementById('order-details-content').innerHTML = `
+        <div style="background: #fff0e5; color: #ff6b00; padding: 10px 15px; border-radius: 10px; margin-bottom: 16px; font-weight: 800; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="hash" style="width: 16px;"></i> ออเดอร์ ID: ${order.id}
+        </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
             <div style="background:#f9f9f9; padding:14px; border-radius:12px;">
                 <p style="font-size:0.75rem; color:#aaa; margin-bottom:4px;">ชื่อลูกค้า</p>
@@ -309,7 +320,35 @@ function viewOrderDetails(id) {
         <div style="font-size:0.78rem; color:#bbb; margin-top:8px; text-align:right;">
             🕐 ${ts}
         </div>
-        ${slipHTML}
+        
+        <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
+            <!-- สลิปการโอน -->
+            <div style="margin-bottom: 25px;">
+                <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+                    <i data-lucide="receipt"></i> 🧾 สลิปการโอนเงินจากลูกค้า
+                </p>
+                <div style="max-width: 100%; border-radius: 16px; overflow: hidden; border: 1px solid #eee;">
+                    ${slipHTML}
+                </div>
+            </div>
+
+            <!-- หลักฐานการส่งของ -->
+            <div>
+                <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+                    <i data-lucide="truck"></i> 🚚 หลักฐานการจัดส่ง (จากหน้า Delivery)
+                </p>
+                ${order.deliveryPhoto 
+                    ? `<div style="max-width: 100%; border-radius: 16px; overflow: hidden; border: 1px solid #eee; background: #f0f9ff;">
+                         <img src="${order.deliveryPhoto}" style="width: 100%; display: block; cursor: zoom-in;" onclick="window.open('${order.deliveryPhoto}')">
+                       </div>`
+                    : `<div style="padding:30px; background:#f9f9f9; border-radius:16px; border:1px dashed #ddd; 
+                                   text-align:center; color:#bbb; font-size:0.85rem;">
+                         <i data-lucide="camera-off" style="width:24px; margin-bottom:8px; opacity:0.5;"></i><br>
+                         ยังไม่มีรูปหลักฐานการส่งของ
+                       </div>`
+                }
+            </div>
+        </div>
     `;
     document.getElementById('order-details-modal').classList.add('active');
 }

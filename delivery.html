@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homie Boy | Delivery ยืนยันการส่ง</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background: #f4f7f6;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .delivery-card {
+            background: white;
+            padding: 30px;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 450px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 10px; }
+        
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.9rem; }
+        .input-group input { 
+            width: 100%; padding: 15px; border-radius: 12px; border: 2px solid #eee; 
+            font-size: 1rem; transition: border-color 0.3s;
+        }
+        .input-group input:focus { border-color: var(--primary); outline: none; }
+
+        .photo-upload {
+            border: 2px dashed #ddd;
+            border-radius: 20px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+            background: #fafafa;
+        }
+        .photo-upload.has-image { border-style: solid; border-color: var(--primary); }
+        .photo-preview {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+        
+        #btn-submit { width: 100%; padding: 16px; font-weight: 700; border-radius: 12px; }
+        
+        .status-badge {
+            display: none;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            margin-top: 20px;
+            font-weight: 600;
+        }
+        .status-success { background: #e8f5e9; color: #2e7d32; display: block; }
+        .status-error { background: #ffebee; color: #c62828; display: block; }
+    </style>
+</head>
+<body>
+    <div class="delivery-card">
+        <div class="header">
+            <i data-lucide="truck" style="width: 40px; height: 40px; color: var(--primary); margin-bottom: 10px;"></i>
+            <h1>ยืนยันการส่งอาหาร</h1>
+            <p style="color: #888;">ถ่ายรูปสินค้าเพื่อแจ้งลูกค้าว่าส่งแล้ว</p>
+        </div>
+
+        <div class="input-group">
+            <label>หมายเลขออเดอร์ (ระบุ 6 หลักสุดท้าย หรือ ID เต็ม)</label>
+            <input type="text" id="order-id" placeholder="ตัวอย่าง: ABC123" required>
+        </div>
+
+        <div class="photo-upload" onclick="document.getElementById('file-input').click()">
+            <div id="upload-placeholder">
+                <i data-lucide="camera" style="width: 40px; height: 40px; color: #aaa; margin-bottom: 10px;"></i>
+                <p style="color: #aaa; font-weight: 500;">คลิกเพื่อถ่ายรูปหรือเลือกไฟล์</p>
+            </div>
+            <img id="preview" class="photo-preview">
+            <input type="file" id="file-input" accept="image/*" capture="environment" style="display: none;">
+        </div>
+
+        <button class="btn btn-primary" id="btn-submit" onclick="submitDelivery()">
+            <span id="btn-text">ส่งหลักฐานการจัดส่ง</span>
+        </button>
+
+        <div id="status-message" class="status-badge"></div>
+        
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+            <a href="index.html" style="text-align: center; color: #888; text-decoration: none; font-size: 0.9rem;">
+                กลับหน้าหลัก
+            </a>
+            <button onclick="logout()" style="background: none; border: none; color: #ff5252; font-size: 0.9rem; font-weight: 600; cursor: pointer;">
+                ออกจากระบบ (Rider Logout)
+            </button>
+        </div>
+
+        <!-- History Section -->
+        <div style="margin-top: 40px; border-top: 2px solid #eee; padding-top: 20px;">
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="history" style="width: 20px;"></i> ประวัติการส่งของวันนี้
+            </h3>
+            <div id="delivery-history-list" style="display: flex; flex-direction: column; gap: 15px;">
+                <p style="text-align: center; color: #aaa; font-size: 0.85rem; padding: 20px;">กำลังโหลดประวัติ...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+        // Check Authentication
+        if (localStorage.getItem('riderSession') !== 'true') {
+            window.location.href = 'login.html';
+        }
+
+        lucide.createIcons();
+
+        function logout() {
+            localStorage.removeItem('riderSession');
+            window.location.href = 'login.html';
+        }
+
+        const fileInput = document.getElementById('file-input');
+        const preview = document.getElementById('preview');
+        const placeholder = document.getElementById('upload-placeholder');
+        const statusMsg = document.getElementById('status-message');
+        const btnText = document.getElementById('btn-text');
+        const btnSubmit = document.getElementById('btn-submit');
+
+        let base64Image = null;
+
+        // Handle Image Selection and Resize
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    // Resize to max 800px width/height to stay within Firestore limits
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const max = 800;
+
+                    if (width > height) {
+                        if (width > max) { height *= max / width; width = max; }
+                    } else {
+                        if (height > max) { width *= max / height; height = max; }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    base64Image = canvas.toDataURL('image/jpeg', 0.7);
+                    preview.src = base64Image;
+                    preview.style.display = 'block';
+                    placeholder.style.display = 'none';
+                    document.querySelector('.photo-upload').classList.add('has-image');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        async function submitDelivery() {
+            const orderIdInput = document.getElementById('order-id').value.trim();
+            
+            if (!orderIdInput) return alert('กรุณาระบุหมายเลขออเดอร์');
+            if (!base64Image) return alert('กรุณาถ่ายรูปเพื่อยืนยัน');
+
+            btnSubmit.disabled = true;
+            btnText.textContent = 'กำลังอัปโหลด...';
+            statusMsg.className = 'status-badge';
+            statusMsg.textContent = '';
+
+            try {
+                // Find order (support short ID)
+                let actualId = orderIdInput;
+                const snap = await db.collection('orders').get();
+                const match = snap.docs.find(doc => 
+                    doc.id === orderIdInput || doc.id.toLowerCase().endsWith(orderIdInput.toLowerCase())
+                );
+
+                if (!match) {
+                    throw new Error('ไม่พบหมายเลขออเดอร์นี้');
+                }
+
+                actualId = match.id;
+
+                // Update order in Firestore
+                await db.collection('orders').doc(actualId).update({
+                    status: 'สำเร็จแล้ว',
+                    deliveryPhoto: base64Image,
+                    deliveredAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                statusMsg.textContent = '✅ ยืนยันการส่งสำเร็จ!';
+                statusMsg.classList.add('status-success');
+                btnText.textContent = 'เรียบร้อยแล้ว';
+                
+                // Clear form
+                document.getElementById('order-id').value = '';
+                base64Image = null;
+                preview.style.display = 'none';
+                placeholder.style.display = 'block';
+                document.querySelector('.photo-upload').classList.remove('has-image');
+
+            } catch (err) {
+                console.error(err);
+                statusMsg.textContent = '❌ ผิดพลาด: ' + err.message;
+                statusMsg.classList.add('status-error');
+                btnSubmit.disabled = false;
+                btnText.textContent = 'ส่งหลักฐานการจัดส่ง';
+            }
+        }
+
+        // --- NEW: Load History Function ---
+        function loadHistory() {
+            const historyList = document.getElementById('delivery-history-list');
+
+            // Listen for completed orders
+            db.collection('orders')
+                .where('status', '==', 'สำเร็จแล้ว')
+                .orderBy('deliveredAt', 'desc')
+                .limit(10)
+                .onSnapshot(snap => {
+                    if (snap.empty) {
+                        historyList.innerHTML = '<p style="text-align: center; color: #aaa; font-size: 0.85rem; padding: 20px;">ยังไม่มีประวัติการส่งของ</p>';
+                        return;
+                    }
+
+                    historyList.innerHTML = snap.docs.map(doc => {
+                        const order = doc.data();
+                        const idStr = String(doc.id);
+                        const shortId = idStr.length > 10 ? idStr.slice(-6).toUpperCase() : idStr;
+                        
+                        // Format time
+                        let timeStr = 'เมื่อครู่';
+                        if (order.deliveredAt) {
+                            const d = order.deliveredAt.toDate();
+                            timeStr = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                        }
+
+                        return `
+                            <div style="background: #f9f9f9; border-radius: 18px; padding: 18px; border: 1px solid #eee; margin-bottom: 5px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center;">
+                                    <span style="background: #e8f5e9; color: #2e7d32; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px;">#${shortId}</span>
+                                    <span style="font-size: 0.75rem; color: #aaa; font-weight: 500;">⏱️ ${timeStr}</span>
+                                </div>
+                                <p style="font-weight: 800; font-size: 1rem; margin-bottom: 6px; color: #333;">${order.customerName || 'ลูกค้า'}</p>
+                                <p style="font-size: 0.85rem; color: #ff6b00; margin-bottom: 10px; font-weight: 700;">📞 ${order.phone || '-'}</p>
+                                <div style="background: white; padding: 12px; border-radius: 12px; border: 1px solid #f0f0f0; margin-bottom: 12px;">
+                                    <p style="font-size: 0.8rem; color: #777; line-height: 1.5;">📍 ${order.address || '-'}</p>
+                                </div>
+                                
+                                ${order.deliveryPhoto ? `
+                                    <div style="width: 100%; height: 140px; border-radius: 14px; overflow: hidden; position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                        <img src="${order.deliveryPhoto}" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" onclick="window.open('${order.deliveryPhoto}')">
+                                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.4); color: white; font-size: 0.65rem; padding: 5px; text-align: center; backdrop-filter: blur(4px);">คลิกเพื่อขยายรูปหลักฐาน</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    lucide.createIcons();
+                }, err => {
+                    console.error("History Error:", err);
+                    historyList.innerHTML = '<p style="color:#ff5252; font-size:0.8rem; text-align:center;">⚠️ ไม่สามารถโหลดประวัติได้ (อาจต้องล้างข้อมูลเก่า)</p>';
+                });
+        }
+
+        // Initialize history on load
+        loadHistory();
+    </script>
+</body>
+</html>
