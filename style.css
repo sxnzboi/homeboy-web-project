@@ -1263,24 +1263,7 @@ nav.scrolled {
     .floating-price { font-size: 1.1rem; }
 }
 
-/* ปรับสมดุลขนาดรูปภาพเมนู */
-.menu-card-img-wrap {
-    width: 100%;
-    height: 200px;
-    overflow: hidden;
-    border-radius: 20px 20px 0 0;
-}
 
-.menu-card-img-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s ease;
-}
-
-.menu-card:hover .menu-card-img-wrap img {
-    transform: scale(1.1);
-}
 
 /* --- FINAL FIX FOR MENU LAYOUT --- */
 .menu-grid {
@@ -1430,4 +1413,64 @@ nav.scrolled {
     padding: 5px;
     text-align: center;
     pointer-events: none;
+}
+
+/* --- SOLD OUT SYSTEM --- */
+.btn-available {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+.btn-sold-out {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ffcdd2;
+}
+
+.menu-card.sold-out {
+    position: relative;
+}
+
+.menu-card.sold-out .menu-card-img-wrap {
+    filter: grayscale(1);
+    opacity: 0.7;
+}
+
+.menu-card.sold-out .menu-card-img-wrap::after {
+    content: 'ของหมด';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    background: rgba(255, 82, 82, 0.95);
+    color: white;
+    padding: 10px 25px;
+    border-radius: 12px;
+    font-weight: 900;
+    font-size: 1.4rem;
+    z-index: 10;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    border: 3px solid white;
+    letter-spacing: 2px;
+}
+
+.sold-out-badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: #ff5252;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    z-index: 5;
+}
+
+/* --- ADMIN SOLD OUT VISUAL --- */
+.admin-card.sold-out-card {
+    background: #fafafa;
+    border-left: 5px solid #ff5252;
 }

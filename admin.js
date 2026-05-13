@@ -186,19 +186,27 @@ function renderProducts() {
 
 function displayProducts(products) {
     if(!productListContainer) return;
-    productListContainer.innerHTML = products.map(p => `
-        <div class="admin-card">
+    productListContainer.innerHTML = products.map(p => {
+        const isAvailable = p.isAvailable !== false; // Default เป็น true ถ้าไม่มีฟิลด์นี้
+        return `
+        <div class="admin-card ${!isAvailable ? 'sold-out-card' : ''}">
             <div style="display: flex; align-items: center;">
-                <img src="${p.image}" class="product-img">
-                <div><h4 style="margin:0;">${p.name}</h4><p style="font-size:0.8rem; color:#888;">${p.category}</p></div>
+                <img src="${p.image}" class="product-img" style="${!isAvailable ? 'filter: grayscale(1); opacity: 0.6;' : ''}">
+                <div>
+                    <h4 style="margin:0;">${p.name} ${!isAvailable ? '<span style="color:#ff5252; font-size:0.7rem;">(ของหมด)</span>' : ''}</h4>
+                    <p style="font-size:0.8rem; color:#888;">${p.category}</p>
+                </div>
             </div>
             <div style="font-weight:600; color:var(--primary);">฿${p.price}</div>
             <div class="action-btns">
+                <button type="button" class="btn-sm ${isAvailable ? 'btn-available' : 'btn-sold-out'} btn-toggle-stock" data-id="${p.id}" data-status="${isAvailable}">
+                    ${isAvailable ? 'มีของ' : 'ของหมด'}
+                </button>
                 <button type="button" class="btn-sm btn-edit btn-edit-prod" data-id="${p.id}">แก้ไข</button>
                 <button type="button" class="btn-sm btn-delete btn-delete-prod" data-id="${p.id}">ลบ</button>
             </div>
         </div>
-    `).join('');
+    `;}).join('');
 }
 
 // --- Product Event Listeners ---
@@ -230,6 +238,15 @@ if (productListContainer) {
             }
         } else if (btn.classList.contains('btn-edit-prod')) {
             editProduct(id);
+        } else if (btn.classList.contains('btn-toggle-stock')) {
+            const currentStatus = btn.getAttribute('data-status') === 'true';
+            const newStatus = !currentStatus;
+            
+            if(useFirebase) {
+                db.collection('menu').doc(id).update({ isAvailable: newStatus })
+                    .then(() => showToast(newStatus ? 'เปิดขายแล้ว! 🥗' : 'ปิดการขาย! ❌', 'อัปเดตสถานะสินค้าเรียบร้อย', 'success'))
+                    .catch(err => showToast('เกิดข้อผิดพลาด', err.message, 'error'));
+            }
         }
     });
 }
@@ -370,6 +387,7 @@ function editProduct(id) {
     document.getElementById('prod-category').value = p.category || 'food';
     document.getElementById('prod-desc').value = p.description || '';
     document.getElementById('prod-image').value = p.image || '';
+    document.getElementById('prod-status').value = (p.isAvailable !== false).toString();
     
     document.getElementById('product-modal').classList.add('active');
 }
@@ -381,6 +399,7 @@ window.openProductModal = () => {
     document.getElementById('prod-price').value = '';
     document.getElementById('prod-desc').value = '';
     document.getElementById('prod-image').value = '';
+    document.getElementById('prod-status').value = 'true';
     document.getElementById('product-modal').classList.add('active');
 };
 
@@ -391,7 +410,8 @@ window.saveProduct = () => {
         price: parseInt(document.getElementById('prod-price').value) || 0,
         category: document.getElementById('prod-category').value,
         description: document.getElementById('prod-desc').value,
-        image: document.getElementById('prod-image').value || 'https://images.unsplash.com/photo-1586816001966-79b736744398?auto=format&fit=crop&q=80&w=200'
+        image: document.getElementById('prod-image').value || 'https://images.unsplash.com/photo-1586816001966-79b736744398?auto=format&fit=crop&q=80&w=200',
+        isAvailable: document.getElementById('prod-status').value === 'true'
     };
 
     if(useFirebase) {

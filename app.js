@@ -100,10 +100,13 @@ function renderMenu(filter = 'all') {
         return;
     }
 
-    menuGrid.innerHTML = filtered.map(item => `
-        <div class="menu-card">
+    menuGrid.innerHTML = filtered.map(item => {
+        const isAvailable = item.isAvailable !== false;
+        return `
+        <div class="menu-card ${!isAvailable ? 'sold-out' : ''}">
             <div class="menu-card-img-wrap">
                 <img src="${item.image}" alt="${item.name}" onerror="this.src='https://images.unsplash.com/photo-1586816001966-79b736744398?auto=format&fit=crop&q=80&w=600'">
+                ${!isAvailable ? '<div class="sold-out-badge">ของหมด</div>' : ''}
             </div>
             <div class="menu-card-content">
                 <div class="menu-card-header">
@@ -111,10 +114,15 @@ function renderMenu(filter = 'all') {
                     <span class="menu-card-price">฿${item.price}</span>
                 </div>
                 <p class="menu-card-desc">${item.description}</p>
-                <button class="btn btn-primary" style="width: 100%; margin-top: 15px;" onclick="openCustomModal('${item.id}')">เพิ่มลงตะกร้า</button>
+                <button class="btn ${isAvailable ? 'btn-primary' : 'btn-outline'}" 
+                        style="width: 100%; margin-top: 15px;" 
+                        onclick="${isAvailable ? `openCustomModal('${item.id}')` : 'void(0)'}"
+                        ${!isAvailable ? 'disabled' : ''}>
+                    ${isAvailable ? 'เพิ่มลงตะกร้า' : 'สินค้าหมดชั่วคราว'}
+                </button>
             </div>
         </div>
-    `).join('');
+    `;}).join('');
 }
 
 // --- Category Logic ---
