@@ -118,7 +118,7 @@ function renderMenu(filter = 'all') {
                         style="width: 100%; margin-top: 15px;" 
                         onclick="${isAvailable ? `openCustomModal('${item.id}')` : 'void(0)'}"
                         ${!isAvailable ? 'disabled' : ''}>
-                    ${isAvailable ? 'เพิ่มลงตะกร้า' : 'สินค้าหมดชั่วคราว'}
+                    ${isAvailable ? 'เพิ่มลงตะกร้า' : 'สินค้าหมด'}
                 </button>
             </div>
         </div>

@@ -387,6 +387,7 @@ function editProduct(id) {
     document.getElementById('prod-category').value = p.category || 'food';
     document.getElementById('prod-desc').value = p.description || '';
     document.getElementById('prod-image').value = p.image || '';
+    document.getElementById('prod-options').value = p.options || '';
     document.getElementById('prod-status').value = (p.isAvailable !== false).toString();
     
     document.getElementById('product-modal').classList.add('active');
@@ -399,6 +400,7 @@ window.openProductModal = () => {
     document.getElementById('prod-price').value = '';
     document.getElementById('prod-desc').value = '';
     document.getElementById('prod-image').value = '';
+    document.getElementById('prod-options').value = '';
     document.getElementById('prod-status').value = 'true';
     document.getElementById('product-modal').classList.add('active');
 };
@@ -411,7 +413,8 @@ window.saveProduct = () => {
         category: document.getElementById('prod-category').value,
         description: document.getElementById('prod-desc').value,
         image: document.getElementById('prod-image').value || 'https://images.unsplash.com/photo-1586816001966-79b736744398?auto=format&fit=crop&q=80&w=200',
-        isAvailable: document.getElementById('prod-status').value === 'true'
+        isAvailable: document.getElementById('prod-status').value === 'true',
+        options: document.getElementById('prod-options').value // เก็บเป็น String (เช่น "เพิ่มชีส, ไม่ผัก")
     };
 
     if(useFirebase) {
