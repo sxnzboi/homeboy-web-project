@@ -147,9 +147,10 @@ nav.scrolled {
     background: rgba(255, 107, 0, 0.1);
 }
 
-.title-icon svg {
-    width: 45px;
-    height: 45px;
+.title-icon img {
+    width: 60px;
+    height: 60px;
+    filter: drop-shadow(0 5px 15px rgba(255, 107, 0, 0.2));
 }
 
 .hero-content h1 {
