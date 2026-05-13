@@ -1459,7 +1459,7 @@ nav.scrolled {
 .sold-out-badge {
     position: absolute;
     top: 15px;
-    right: 15px;
+    right: 15ฟืpx;
     background: #ff5252;
     color: white;
     padding: 5px 12px;

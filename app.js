@@ -150,16 +150,46 @@ function openCustomModal(id) {
     // ตั้งชื่อหัวข้อ Modal
     document.getElementById('modal-product-name').innerText = `ปรับแต่ง ${pendingProduct.name}`;
     
-    // เลือกแสดงชุดตัวเลือกตามประเภท
-    const foodDiv = document.getElementById('food-options');
-    const drinkDiv = document.getElementById('drink-options');
+    // แสดงชุดตัวเลือกจากฐานข้อมูล (ถ้ามี)
+    const dynamicContainer = document.getElementById('dynamic-options-container');
+    dynamicContainer.innerHTML = '';
     
-    if (pendingProduct.category === 'drink') {
-        foodDiv.style.display = 'none';
-        drinkDiv.style.display = 'block';
+    if (pendingProduct.options && pendingProduct.options.trim() !== '') {
+        const optionsList = pendingProduct.options.split(',').map(opt => opt.trim()).filter(opt => opt);
+        
+        if (optionsList.length > 0) {
+            dynamicContainer.style.display = 'block';
+            let html = '<p style="margin-bottom: 10px; font-weight: 600;">ตัวเลือกเพิ่มเติม:</p>';
+            html += '<div style="display: flex; flex-direction: column; gap: 10px;">';
+            
+            optionsList.forEach((opt, index) => {
+                const optId = `dynamic-opt-${index}`;
+                let label = opt;
+                let price = 0;
+                
+                if (opt.includes(':')) {
+                    const parts = opt.split(':');
+                    label = parts[0].trim();
+                    price = parseInt(parts[1]) || 0;
+                }
+
+                html += `
+                    <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: #f9f9f9; padding: 10px 15px; border-radius: 10px; transition: 0.2s;" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='#f9f9f9'">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" class="dynamic-checkbox" id="${optId}" value="${label}" data-price="${price}">
+                            <span style="font-weight: 500;">${label}</span>
+                        </div>
+                        ${price > 0 ? `<span style="color: var(--primary); font-weight: 600;">+฿${price}</span>` : ''}
+                    </label>
+                `;
+            });
+            html += '</div>';
+            dynamicContainer.innerHTML = html;
+        } else {
+            dynamicContainer.style.display = 'none';
+        }
     } else {
-        foodDiv.style.display = 'block';
-        drinkDiv.style.display = 'none';
+        dynamicContainer.style.display = 'none';
     }
 
     customModal.classList.add('active');
@@ -185,16 +215,24 @@ document.getElementById('confirm-add').onclick = () => {
     
     let price = pendingProduct.price;
 
-    if (pendingProduct.category === 'drink') {
-        // ดึงค่าความหวาน
-        const sweetness = document.querySelector('input[name="sweetness"]:checked').value;
-        options.sweetness = sweetness;
-    } else {
-        // ตัวเลือกอาหาร
-        options.noVeggie = document.getElementById('opt-no-veggie').checked;
-        options.noSauce = document.getElementById('opt-no-sauce').checked;
-        options.extraCheese = document.getElementById('opt-extra-cheese').checked;
-        if(options.extraCheese) price += 20;
+    // ดึงค่าจาก Dynamic Checkboxes และคำนวณราคาเพิ่ม
+    const dynamicCheckboxes = document.querySelectorAll('.dynamic-checkbox:checked');
+    const selectedOptions = [];
+    let extraPrice = 0;
+
+    dynamicCheckboxes.forEach(cb => {
+        const itemPrice = parseInt(cb.getAttribute('data-price')) || 0;
+        selectedOptions.push({
+            name: cb.value,
+            price: itemPrice
+        });
+        extraPrice += itemPrice;
+    });
+    
+    price += extraPrice;
+
+    if (selectedOptions.length > 0) {
+        options.dynamic = selectedOptions;
     }
     
     cart.push({
@@ -210,15 +248,9 @@ document.getElementById('confirm-add').onclick = () => {
     openCart();
 };
 
-function resetCustomOptions() {
-    document.getElementById('opt-no-veggie').checked = false;
-    document.getElementById('opt-no-sauce').checked = false;
-    document.getElementById('opt-extra-cheese').checked = false;
     document.getElementById('opt-note').value = '';
-    // Reset sweetness to 50%
-    const defaultSweet = document.querySelector('input[name="sweetness"][value="50%"]');
-    if (defaultSweet) defaultSweet.checked = true;
-}
+    const dynamicCheckboxes = document.querySelectorAll('.dynamic-checkbox');
+    dynamicCheckboxes.forEach(cb => cb.checked = false);
 
 // --- Cart Logic ---
 function updateCart() {
@@ -240,12 +272,8 @@ function updateCart() {
     cartItemsContainer.innerHTML = cart.map(item => {
         let customParts = [];
         
-        if (item.category === 'drink' && item.customOptions.sweetness) {
-            customParts.push(`หวาน ${item.customOptions.sweetness}`);
-        } else if (item.category === 'food') {
-            if (item.customOptions.noVeggie) customParts.push('ไม่ผัก');
-            if (item.customOptions.noSauce) customParts.push('ไม่ซอส');
-            if (item.customOptions.extraCheese) customParts.push('เพิ่มชีส');
+        if (item.customOptions.dynamic && item.customOptions.dynamic.length > 0) {
+            customParts.push(item.customOptions.dynamic.map(d => `${d.name}${d.price > 0 ? ` (+฿${d.price})` : ''}`).join(', '));
         }
         
         if (item.customOptions.note) customParts.push(item.customOptions.note);

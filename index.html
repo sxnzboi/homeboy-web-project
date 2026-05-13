@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HomieBoy | ระบบสั่งอาหาร</title>
+    <link rel="icon" type="image/png" href="Homiboi.png">
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -94,23 +95,9 @@
             <span class="modal-close" id="close-custom">&times;</span>
             <h3 id="modal-product-name">ปรับแต่งเมนูของคุณ</h3>
             
-            <!-- Food Options (จะแสดงเมื่อเป็นอาหาร) -->
-            <div id="food-options" class="options-group" style="display: none;">
-                <p style="margin-bottom: 10px; font-weight: 600;">ตัวเลือกเพิ่มเติม:</p>
-                <label><input type="checkbox" id="opt-no-veggie"> ไม่ใส่ผัก</label>
-                <label><input type="checkbox" id="opt-no-sauce"> ไม่ใส่ซอส</label>
-                <label><input type="checkbox" id="opt-extra-cheese"> เพิ่มชีส (+฿20)</label>
-            </div>
-
-            <!-- Drink Options (จะแสดงเมื่อเป็นเครื่องดื่ม) -->
-            <div id="drink-options" class="options-group" style="display: none;">
-                <p style="margin-bottom: 10px; font-weight: 600;">ระดับความหวาน:</p>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <label><input type="radio" name="sweetness" value="0%"> 0% (ไม่หวาน)</label>
-                    <label><input type="radio" name="sweetness" value="25%"> 25% (หวานน้อย)</label>
-                    <label><input type="radio" name="sweetness" value="50%" checked> 50% (ปกติ)</label>
-                    <label><input type="radio" name="sweetness" value="100%"> 100% (หวานมาก)</label>
-                </div>
+            <!-- Dynamic Options Area -->
+            <div id="dynamic-options-container" class="options-group" style="display: none; margin-bottom: 15px;">
+                <!-- Options will be injected here dynamically by app.js -->
             </div>
 
             <div class="form-group">

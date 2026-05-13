@@ -310,12 +310,21 @@ function viewOrderDetails(id) {
                 let customParts = [];
                 const opt = i.customOptions || {};
                 
-                // เช็คจากค่าที่มีจริง (ยืดหยุ่นขึ้น)
+                // ดึงตัวเลือกแบบไดนามิก (ระบบใหม่)
+                if (opt.dynamic && Array.isArray(opt.dynamic)) {
+                    const dynamicStrings = opt.dynamic.map(d => 
+                        typeof d === 'object' ? `${d.name}${d.price > 0 ? ` (+฿${d.price})` : ''}` : d
+                    );
+                    customParts.push(...dynamicStrings);
+                }
+                
+                // รองรับข้อมูลแบบเก่าเผื่อมีออเดอร์ค้างในระบบ
                 if (opt.sweetness) customParts.push(`หวาน ${opt.sweetness}`);
                 if (opt.noVeggie) customParts.push('ไม่ผัก');
                 if (opt.noSauce) customParts.push('ไม่ซอส');
                 if (opt.extraCheese) customParts.push('เพิ่มชีส');
-                if (opt.note) customParts.push(opt.note);
+                
+                if (opt.note) customParts.push(`หมายเหตุ: ${opt.note}`);
                 
                 const desc = customParts.join(', ');
 
