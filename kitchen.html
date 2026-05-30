@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="Homiboi.png">
+    <title>HomieBoy Kitchen Display</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kanit', sans-serif; }
+        body { background: #121212; color: #fff; min-height: 100vh; overflow-x: hidden; }
+        
+        .kds-header {
+            background: #1e1e1e;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #333;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .kds-header h1 {
+            color: #ff6b00;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .time-display {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #aaa;
+        }
+
+        .kds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 25px;
+            padding: 25px;
+            align-items: start;
+        }
+
+        .order-card {
+            background: linear-gradient(145deg, #242424, #1a1a1a);
+            border: 1px solid #333;
+            border-radius: 20px;
+            overflow: hidden;
+            border-top: 5px solid #ff6b00;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); scale: 0.95; }
+            to { opacity: 1; transform: translateY(0); scale: 1; }
+        }
+        
+        .late-order {
+            border-top: 5px solid #ef4444 !important;
+            animation: flashRed 1.5s infinite !important;
+        }
+
+        @keyframes flashRed {
+            0% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); border-top-color: #ef4444; }
+            50% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.8); border-top-color: #fca5a5; }
+            100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); border-top-color: #ef4444; }
+        }
+
+        .order-header {
+            background: transparent;
+            padding: 20px 20px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .order-id { font-size: 1.6rem; font-weight: 800; color: #fff; letter-spacing: 1px; }
+        .order-type { 
+            padding: 5px 12px; 
+            border-radius: 20px; 
+            font-size: 0.85rem; 
+            font-weight: 700;
+            color: #fff;
+        }
+        .type-dining { background: #3b82f6; }
+        .type-walkin { background: #8b5cf6; }
+        .type-delivery { background: #ff6b00; }
+
+        .order-time {
+            font-size: 0.9rem;
+            color: #aaa;
+            padding: 10px 15px 0;
+            font-weight: 500;
+        }
+
+        .order-items {
+            padding: 15px;
+            flex-grow: 1;
+        }
+
+        .item-row {
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px dashed #444;
+        }
+        .item-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        
+        .item-name { font-size: 1.2rem; font-weight: 600; display: flex; justify-content: space-between; }
+        .item-qty { color: #ff6b00; font-weight: 800; }
+        .item-note { 
+            color: #fca5a5; 
+            font-size: 0.95rem; 
+            margin-top: 4px; 
+            padding-left: 15px;
+            border-left: 3px solid #ef4444;
+            font-weight: 500;
+        }
+
+        .btn-done {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 18px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-done:hover { 
+            background: linear-gradient(135deg, #059669, #047857);
+            box-shadow: 0 -5px 20px rgba(16, 185, 129, 0.2);
+        }
+        
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 100px 20px;
+            color: #555;
+        }
+        .empty-state i { width: 64px; height: 64px; margin-bottom: 15px; opacity: 0.5; }
+        
+        /* Product Summary & Undo */
+        .kds-summary {
+            background: #1a1a1a;
+            padding: 12px 25px;
+            display: flex;
+            gap: 15px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 1px solid #333;
+        }
+        .summary-badge {
+            background: #2a2a2a;
+            color: #ff6b00;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #444;
+        }
+        
+        .undo-toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #111;
+            border-left: 4px solid #3b82f6;
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            z-index: 1000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
+        .undo-toast.show {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .undo-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .undo-btn:hover { background: #2563eb; }
+
+        /* === Status Flow Styles === */
+        .btn-start {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            border: none;
+            padding: 18px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-start:hover {
+            background: linear-gradient(135deg, #d97706, #b45309);
+            box-shadow: 0 -5px 20px rgba(245, 158, 11, 0.25);
+        }
+        .cooking-order {
+            border-top: 5px solid #3b82f6 !important;
+            box-shadow: 0 15px 35px rgba(59, 130, 246, 0.2) !important;
+        }
+        .kds-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .kds-status-badge.pending {
+            background: rgba(255, 107, 0, 0.15);
+            color: #ff6b00;
+            border: 1px solid rgba(255, 107, 0, 0.4);
+        }
+        .kds-status-badge.cooking {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.5);
+        }
+        .btn-cancel-small {
+            background: transparent;
+            color: #ef4444;
+            border: none;
+            border-right: 1px solid #333;
+            padding: 18px 20px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            letter-spacing: 0.5px;
+        }
+        .btn-cancel-small:hover {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header class="kds-header">
+    <h1><i data-lucide="chef-hat"></i> HomieBoy KDS</h1>
+    <div class="time-display" id="clock">00:00:00</div>
+</header>
+
+<div class="kds-summary" id="product-summary" style="display: none;">
+    <!-- Summary badges injected here -->
+</div>
+
+<section id="orders-section" class="kds-section active">
+    <div class="kds-grid" id="kds-grid">
+        <!-- Orders will be injected here -->
+        <div class="empty-state">
+            <i data-lucide="coffee"></i>
+            <h2>ไม่มีออเดอร์ในคิว</h2>
+            <p>ห้องครัวว่างแล้ว!</p>
+        </div>
+    </div>
+</section>
+
+<!-- Recipe Modal -->
+<div id="recipe-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
+    <div style="background: #222; border-radius: 12px; max-width: 600px; width: 100%; border-left: 5px solid #10b981; overflow: hidden; display: flex; flex-direction: column;">
+        <div style="padding: 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="recipe-modal-title" style="color: #10b981; margin: 0; font-size: 1.5rem;">สูตรและวิธีทำ</h2>
+            <button onclick="document.getElementById('recipe-modal').style.display='none'" style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <div id="recipe-modal-body" style="padding: 20px; max-height: 60vh; overflow-y: auto;">
+        </div>
+        <div style="padding: 15px 20px; background: #1a1a1a;">
+            <button onclick="document.getElementById('recipe-modal').style.display='none'" style="width: 100%; padding: 12px; background: #333; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer;">ปิด</button>
+        </div>
+    </div>
+</div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="firebase-config.js"></script>
+    
+    <!-- Sound Effect -->
+    <audio id="notification-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
+    <div class="undo-toast" id="undo-toast">
+        <span id="undo-text">ออเดอร์ #... เสร็จสิ้น</span>
+        <button class="undo-btn" onclick="undoOrder()">ย้อนกลับ (Undo)</button>
+    </div>
+
+    <script src="kitchen.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

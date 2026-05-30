@@ -186,6 +186,45 @@
         .btn-edit { background: #e3f2fd; color: #1976d2; }
         .btn-delete { background: #ffebee; color: #d32f2f; }
 
+        .status-toggle-wrap {
+            margin-top: auto;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(24px); }
+        
         @media (max-width: 992px) {
             .admin-sidebar { display: none; }
             .admin-main { margin-left: 0; padding: 20px; }
@@ -201,16 +240,64 @@
                 Homie Boy
             </a>
         </div>
-        <button class="btn btn-outline logout-btn" onclick="logout()">
+        <div class="status-toggle-wrap">
+            <span style="font-weight: 700; font-size: 0.9rem;">สถานะร้าน</span>
+            <label class="switch">
+                <input type="checkbox" id="shop-status-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <a href="kitchen.html" target="_blank" class="btn btn-outline" style="margin-top: auto; margin-bottom: 15px; border-color: #22c55e; color: #16a34a; display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <i data-lucide="chef-hat" style="width: 18px;"></i> จอห้องครัว (KDS)
+        </a>
+        <button class="btn btn-outline logout-btn" onclick="logout()" style="margin-top: 0;">
             <i data-lucide="log-out" style="width: 18px;"></i> ออกจากระบบ
         </button>
     </aside>
 
     <!-- Main Content Area -->
     <main class="admin-main">
+        <!-- Shop Status Bar (visible on all devices) -->
+        <div id="shop-status-bar" style="
+            display: flex; align-items: center; justify-content: space-between;
+            background: #fff; border-radius: 16px; padding: 15px 25px;
+            margin-bottom: 20px; border: 1px solid #f0f0f0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.03);
+        ">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span id="shop-status-dot" style="
+                    width: 12px; height: 12px; border-radius: 50%;
+                    background: #ccc; display: inline-block;
+                "></span>
+                <span style="font-weight: 700; font-size: 0.95rem;">สถานะร้าน:</span>
+                <span id="shop-status-text" style="font-weight: 600; color: #888;">กำลังโหลด...</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <label class="switch">
+                    <input type="checkbox" id="shop-status-toggle-main">
+                    <span class="slider"></span>
+                </label>
+                <!-- Mobile Logout Button -->
+                <button class="btn btn-outline" onclick="logout()" style="
+                    display: none; padding: 8px 15px; border-radius: 10px;
+                    font-size: 0.8rem; color: #ff5252; border-color: #ff5252;
+                " id="mobile-logout-btn">
+                    ออกจากระบบ
+                </button>
+            </div>
+        </div>
+        <style>
+            @media (max-width: 992px) {
+                #mobile-logout-btn { display: inline-block !important; }
+            }
+        </style>
+
         <div class="dashboard-header" style="justify-content: center; gap: 20px;">
             <div class="admin-nav-item active" onclick="switchTab('orders')" id="nav-orders" style="margin-bottom: 0;">
                 <i data-lucide="shopping-cart"></i> รายการสั่งซื้อ
+            </div>
+            <div class="admin-nav-item" onclick="switchTab('pos')" id="nav-pos" style="margin-bottom: 0;">
+                <i data-lucide="monitor"></i> POS (หน้าร้าน)
             </div>
             <div class="admin-nav-item" onclick="switchTab('products')" id="nav-products" style="margin-bottom: 0;">
                 <i data-lucide="package"></i> จัดการเมนู
@@ -223,8 +310,10 @@
         <!-- Orders Section -->
         <section id="orders-section" class="admin-section active">
             <div class="stats-grid">
-                <div class="stat-card"><h5>ออเดอร์วันนี้</h5><div class="value" id="today-orders">0</div></div>
-                <div class="stat-card"><h5>รายได้รวม</h5><div class="value" id="total-revenue">฿0</div></div>
+                <div class="stat-card"><h5>ออเดอร์ทั้งหมดวันนี้</h5><div class="value" id="today-orders">0</div></div>
+                <div class="stat-card"><h5>รายได้รวมทั้งหมด</h5><div class="value" id="total-revenue">฿0</div></div>
+                <div class="stat-card"><h5>รายได้ Delivery</h5><div class="value" id="delivery-revenue" style="color:#039be5;">฿0</div></div>
+                <div class="stat-card"><h5>รายได้ POS (หน้าร้าน)</h5><div class="value" id="pos-revenue" style="color:#22c55e;">฿0</div></div>
             </div>
             <div id="admin-order-list">
                 <!-- Orders injected here -->
@@ -235,6 +324,61 @@
         <section id="products-section" class="admin-section" style="display: none;">
             <div id="admin-product-list">
                 <!-- Products injected here -->
+            </div>
+        </section>
+
+        <!-- POS Section -->
+        <section id="pos-section" class="admin-section" style="display: none;">
+            <div class="pos-layout">
+                <!-- Left: Menu Grid -->
+                <div class="pos-menu-area">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px;">
+                        <button class="btn-sm btn-outline pos-cat-btn" style="background:var(--primary);color:white;" onclick="filterPosMenu('all', this)">ทั้งหมด</button>
+                        <button class="btn-sm btn-outline pos-cat-btn" onclick="filterPosMenu('food', this)">อาหาร</button>
+                        <button class="btn-sm btn-outline pos-cat-btn" onclick="filterPosMenu('drink', this)">เครื่องดื่ม</button>
+                        <button class="btn-sm btn-outline pos-cat-btn" onclick="filterPosMenu('dessert', this)">ของหวาน</button>
+                        <button class="btn-sm btn-outline pos-cat-btn" onclick="filterPosMenu('set', this)">เมนูเซ็ต</button>
+                    </div>
+                    <div class="pos-menu-grid" id="pos-menu-grid">
+                        <!-- POS Menu items injected here -->
+                    </div>
+                </div>
+
+                <!-- Right: Cart Area -->
+                <div class="pos-cart-area">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h4 style="margin:0; display:flex; align-items:center; gap:8px;"><i data-lucide="shopping-cart"></i> ออเดอร์หน้าร้าน</h4>
+                        <button class="btn-sm btn-delete" onclick="clearPosCart()">ล้างทั้งหมด</button>
+                    </div>
+                    <div class="pos-cart-items" id="pos-cart-items">
+                        <!-- POS Cart items injected here -->
+                    </div>
+                    <div class="pos-cart-summary">
+                        <div class="pos-summary-row">
+                            <span>ยอดรวม (<span id="pos-cart-count">0</span> รายการ)</span>
+                            <span id="pos-subtotal">฿0</span>
+                        </div>
+                        <div class="pos-summary-row" style="align-items: center;">
+                            <span>ส่วนลด (บาท)</span>
+                            <input type="number" id="pos-discount" class="pos-discount-input" value="0" min="0" oninput="updatePosTotals()">
+                        </div>
+                        <div class="pos-summary-row total">
+                            <span>ยอดสุทธิ</span>
+                            <span id="pos-total">฿0</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <label style="font-size: 0.8rem; font-weight: 600;">ประเภทลูกค้า:</label>
+                        <div style="display: flex; gap: 10px; margin-top: 5px;">
+                            <label><input type="radio" name="pos-order-type" value="walk-in" checked> สั่งกลับบ้าน (Walk-in)</label>
+                            <label><input type="radio" name="pos-order-type" value="dining"> ทานที่ร้าน (Dining)</label>
+                        </div>
+                    </div>
+                    <div class="pos-checkout-btns">
+                        <button class="btn pos-btn-cash" style="display:flex; align-items:center; justify-content:center; gap:8px;" onclick="openPosCashModal()"><i data-lucide="banknote"></i> รับเงินสด</button>
+                        <button class="btn pos-btn-qr" style="display:flex; align-items:center; justify-content:center; gap:8px;" onclick="openPosQrModal()"><i data-lucide="smartphone"></i> สแกน QR (PromptPay)</button>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
@@ -304,13 +448,106 @@
 
     <!-- Toast Notification (Delete Success) -->
     <div id="toast-notification" class="toast-notification" role="status" aria-live="polite">
-        <div class="toast-icon success" id="toast-icon">✓</div>
+        <div class="toast-icon success" id="toast-icon"><i data-lucide="check" style="width:24px;height:24px;color:white;"></i></div>
         <div class="toast-body">
             <div class="toast-title" id="toast-title">สำเร็จ!</div>
             <div class="toast-subtitle" id="toast-subtitle">ดำเนินการเรียบร้อยแล้ว</div>
         </div>
         <div class="toast-progress" id="toast-progress"></div>
     </div>
+
+    <!-- POS Cash Checkout Modal -->
+    <div class="modal" id="pos-cash-modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <span class="modal-close" onclick="document.getElementById('pos-cash-modal').classList.remove('active')">&times;</span>
+            <h3 style="color: #4caf50;">ชำระเงินสด</h3>
+            <div style="margin: 20px 0; font-size: 2rem; font-weight: 800; color: var(--primary);">
+                ยอดสุทธิ: ฿<span id="cash-modal-total">0</span>
+            </div>
+            
+            <div style="text-align: left; margin-bottom: 15px;">
+                <label style="font-weight: 600; font-size: 0.9rem;">รับเงินมา (บาท):</label>
+                <input type="number" id="cash-received" style="width: 100%; padding: 15px; font-size: 1.2rem; border-radius: 12px; border: 1px solid #ddd; margin-top: 5px; text-align: right;" oninput="calculateChange()">
+            </div>
+
+            <div class="cash-calc-grid">
+                <button class="cash-quick-btn" onclick="addQuickCash(50)">+50</button>
+                <button class="cash-quick-btn" onclick="addQuickCash(100)">+100</button>
+                <button class="cash-quick-btn" onclick="addQuickCash(500)">+500</button>
+                <button class="cash-quick-btn" onclick="addQuickCash(1000)">+1000</button>
+                <button class="cash-quick-btn" onclick="exactCash()">พอดี</button>
+                <button class="cash-quick-btn" onclick="document.getElementById('cash-received').value = ''; calculateChange();" style="color: #ef4444;">ล้าง</button>
+            </div>
+
+            <div style="margin: 15px 0; padding: 15px; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0;">
+                <span style="font-weight: 600; color: #166534;">เงินทอน: </span>
+                <span id="cash-change" style="font-size: 1.5rem; font-weight: 800; color: #15803d;">฿0</span>
+            </div>
+
+            <button class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1.1rem;" onclick="confirmPosOrder('cash')">ยืนยันรับชำระเงิน</button>
+        </div>
+    </div>
+
+    <!-- POS QR Checkout Modal -->
+    <div class="modal" id="pos-qr-modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <span class="modal-close" onclick="document.getElementById('pos-qr-modal').classList.remove('active')">&times;</span>
+            <h3 style="color: #039be5;">สแกนชำระเงิน (PromptPay)</h3>
+            <div style="margin: 20px 0; font-size: 2rem; font-weight: 800; color: var(--primary);">
+                ยอดสุทธิ: ฿<span id="qr-modal-total">0</span>
+            </div>
+            
+            <img src="IMG_1425 3.jpg" alt="PromptPay QR" style="width: 250px; height: 250px; object-fit: contain; margin: 0 auto; display: block; border: 2px solid #039be5; padding: 10px; border-radius: 20px;">
+            <p style="margin-top: 15px; font-weight: 600; color: #555;">สแกน QR Code เพื่อชำระเงิน</p>
+
+            <button class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1.1rem; margin-top: 20px;" onclick="confirmPosOrder('promptpay')">ยืนยันลูกค้าโอนเงินแล้ว</button>
+        </div>
+    </div>
+
+    <!-- Customization Modal for POS -->
+    <div class="modal" id="pos-custom-modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="document.getElementById('pos-custom-modal').classList.remove('active')">&times;</span>
+            <h3 id="pos-modal-product-name">ปรับแต่งเมนู</h3>
+            
+            <!-- Dynamic Options Area -->
+            <div id="pos-dynamic-options-container" class="options-group" style="display: none; margin-bottom: 15px;">
+                <!-- Options injected here -->
+            </div>
+
+            <div class="form-group">
+                <label>คำขอพิเศษเพิ่มเติม</label>
+                <textarea id="pos-opt-note" placeholder="เช่น ไม่ใส่หอมใหญ่, ขอแยกน้ำแข็ง"></textarea>
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" id="pos-confirm-add">เพิ่มลงออเดอร์</button>
+        </div>
+    </div>
+
+    <!-- Recipe / Instructions Modal -->
+    <div class="modal" id="ingredient-edit-modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="modal-close" onclick="document.getElementById('ingredient-edit-modal').classList.remove('active')">&times;</span>
+            <h3 id="ingredient-modal-title">สูตรและวิธีทำ (สำหรับเชฟ)</h3>
+            <p style="font-size:0.85rem; color:#666; margin-bottom:15px;">สำหรับเมนู: <strong id="ingredient-product-name"></strong></p>
+            <input type="hidden" id="ingredient-product-id">
+            
+            <div id="ingredient-modal-body" style="margin-top:20px; max-height: 400px; overflow-y: auto; padding-right: 10px;">
+                <div class="form-group">
+                    <label>ส่วนผสม / วัตถุดิบ</label>
+                    <textarea id="recipe-ingredients" placeholder="เช่น เนื้อเบอร์เกอร์ 150g, ชีส 2 แผ่น..." style="min-height: 100px;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>ขั้นตอนวิธีทำ</label>
+                    <textarea id="recipe-steps" placeholder="1. ย่างเนื้อให้สุกระดับ Medium\n2. วางชีสบนเนื้อ..." style="min-height: 120px;"></textarea>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" style="width:100%; margin-top: 15px;" id="save-ingredient-changes">บันทึกสูตรและวิธีทำ</button>
+        </div>
+    </div>
+
+    <!-- Hidden Print Area -->
+    <div id="print-area"></div>
 
     <script src="admin.js"></script>
     <script>lucide.createIcons();</script>

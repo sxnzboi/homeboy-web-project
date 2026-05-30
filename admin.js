@@ -32,9 +32,9 @@ function showToast(title, subtitle = '', type = 'success') {
 
     // Set content
     iconEl.className  = `toast-icon ${type}`;
-    iconEl.textContent = type === 'success' ? '✓' : '✕';
-    titleEl.textContent = title;
-    subEl.textContent   = subtitle;
+    iconEl.innerHTML = type === 'success' ? '<i data-lucide="check" style="width:24px;height:24px;"></i>' : '<i data-lucide="x" style="width:24px;height:24px;"></i>';
+    titleEl.innerHTML = title;
+    subEl.innerHTML   = subtitle;
 
     // Re-trigger progress animation
     progress.style.animation = 'none';
@@ -43,6 +43,7 @@ function showToast(title, subtitle = '', type = 'success') {
 
     // Show
     requestAnimationFrame(() => {
+        lucide.createIcons();
         requestAnimationFrame(() => toast.classList.add('show'));
     });
 
@@ -55,21 +56,31 @@ const productListContainer = document.getElementById('admin-product-list');
 
 // --- Tab Management ---
 window.switchTab = function(tab) {
+    console.log('Switching to', tab); // Debug log
     document.querySelectorAll('.admin-nav-item').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.admin-section').forEach(sec => sec.style.display = 'none');
     const activeBtn = document.getElementById(`nav-${tab}`);
-    if(activeBtn) activeBtn.classList.add('active');
-    document.getElementById(`${tab}-section`).style.display = 'block';
+    if (activeBtn) activeBtn.classList.add('active');
     
-    if(tab === 'products') {
-        document.getElementById('action-area').innerHTML = `
-            <button type="button" class="btn btn-primary btn-sm" onclick="openProductModal()">+ เพิ่มเมนูใหม่</button>
-            <button type="button" class="btn btn-delete btn-sm" onclick="clearAllProducts()" style="margin-left: 10px;">🗑️ ล้างเมนูทั้งหมด</button>
+    document.getElementById(`${tab}-section`).style.display = 'block';
+
+    const actionArea = document.getElementById('action-area');
+    actionArea.innerHTML = '';
+    
+    if (tab === 'products') {
+        actionArea.innerHTML = `
+            <button type="button" class="btn btn-primary btn-sm" onclick="window.openProductModal()">+ เพิ่มเมนูใหม่</button>
+            <button type="button" class="btn btn-delete btn-sm" onclick="clearAllProducts()" style="display:inline-flex;align-items:center;gap:5px;margin-left: 10px;"><i data-lucide="trash-2" style="width:16px;height:16px;"></i> ล้างเมนูทั้งหมด</button>
         `;
         renderProducts();
-    } else {
-        document.getElementById('action-area').innerHTML = '';
+    } else if (tab === 'orders') {
         renderOrders();
+    } else if (tab === 'pos') {
+        if (currentProducts.length === 0) {
+            loadProducts(renderPosMenu);
+        } else {
+            renderPosMenu();
+        }
     }
 };
 
@@ -114,22 +125,49 @@ function displayOrders(orders) {
                 <p style="font-size: 0.8rem; color: #888;">ยอดรวม: ฿${order.total}</p>
             </div>
             <div><button type="button" class="btn-sm btn-view" data-id="${order.id}">รายละเอียด</button></div>
-            <div>
-                <select class="status-select" data-id="${order.id}" style="padding: 5px; border-radius: 8px;">
-                    <option value="รอดำเนินการ" ${order.status === 'รอดำเนินการ' ? 'selected' : ''}>รอดำเนินการ</option>
-                    <option value="กำลังเตรียม" ${order.status === 'กำลังเตรียม' ? 'selected' : ''}>กำลังเตรียม</option>
-                    <option value="สำเร็จแล้ว" ${order.status === 'สำเร็จแล้ว' ? 'selected' : ''}>สำเร็จแล้ว</option>
-                    <option value="ยกเลิก" ${order.status === 'ยกเลิก' ? 'selected' : ''}>ยกเลิก</option>
-                </select>
+            <div style="display:flex; align-items:center;">${getStatusBadge(order.status)}</div>
+            <div class="action-btns">
+                <button type="button" class="btn-sm btn-cancel-order" data-id="${order.id}" style="background:#fef2f2;color:#ef4444;border:1px solid #fca5a5;" ${order.status === 'ยกเลิก' ? 'disabled style="opacity:0.5;cursor:default;"' : ''}>ยกเลิก</button>
+                <button type="button" class="btn-sm btn-delete-order" data-id="${order.id}">ลบ</button>
             </div>
-            <div class="action-btns"><button type="button" class="btn-sm btn-delete-order" data-id="${order.id}">ลบ</button></div>
         </div>
         `;
     }).join('');
 }
 
+// === Status Badge (Read-Only for Admin) ===
+function getStatusBadge(status) {
+    const map = {
+        'รอดำเนินการ': { bg: '#fff0e5', color: '#ff6b00', border: '#ffb380', icon: 'clock' },
+        'กำลังปรุง':   { bg: '#eff6ff', color: '#3b82f6', border: '#93c5fd', icon: 'flame' },
+        'กำลังเตรียม': { bg: '#eff6ff', color: '#3b82f6', border: '#93c5fd', icon: 'flame' },
+        'พร้อมเสิร์ฟ': { bg: '#f0fdf4', color: '#22c55e', border: '#86efac', icon: 'check-circle' },
+        'สำเร็จสิ้น': { bg: '#f0fdf4', color: '#22c55e', border: '#86efac', icon: 'check-circle' },
+        'เสร็จสิ้น':   { bg: '#f0fdf4', color: '#22c55e', border: '#86efac', icon: 'check-circle' },
+        'ยกเลิก':      { bg: '#fef2f2', color: '#ef4444', border: '#fca5a5', icon: 'x-circle' },
+    };
+    const s = map[status] || { bg: '#f5f5f5', color: '#888', border: '#ddd', icon: 'help-circle' };
+    return `<span style="display:inline-flex;align-items:center;gap:5px;background:${s.bg};color:${s.color};border:1px solid ${s.border};padding:5px 12px;border-radius:20px;font-size:0.78rem;font-weight:700;white-space:nowrap;">
+        <i data-lucide="${s.icon}" style="width:12px;height:12px;"></i> ${status || 'รอดำเนินการ'}
+    </span>`;
+}
 
-// Global Click Handlers for Orders (Improved)
+// --- Modal Close Handlers ---
+document.getElementById('close-product-modal')?.addEventListener('click', () => {
+    document.getElementById('product-modal').classList.remove('active');
+});
+document.getElementById('close-order-modal')?.addEventListener('click', () => {
+    document.getElementById('order-details-modal').classList.remove('active');
+});
+document.getElementById('close-order-modal-btn')?.addEventListener('click', () => {
+    document.getElementById('order-details-modal').classList.remove('active');
+});
+// POS custom modal close
+document.getElementById('close-pos-custom-modal')?.addEventListener('click', () => {
+    document.getElementById('pos-custom-modal').classList.remove('active');
+});
+
+// --- Global Click Handlers for Orders (Improved)---
 orderListContainer.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
     if (!btn) return;
@@ -140,33 +178,48 @@ orderListContainer.addEventListener('click', (e) => {
         if(!confirm('ยืนยันการลบออเดอร์นี้?')) return;
         if(useFirebase) {
             db.collection('orders').doc(id).delete()
-                .then(() => showToast('ลบออเดอร์สำเร็จ! 🗑️', 'ออเดอร์ถูกลบออกจากระบบแล้ว', 'success'))
+                .then(() => showToast('<i data-lucide="trash-2" style="width:20px;height:20px;vertical-align:text-bottom;"></i> ลบออเดอร์สำเร็จ!', 'ออเดอร์ถูกลบออกจากระบบแล้ว', 'success'))
                 .catch(err => showToast('เกิดข้อผิดพลาด', err.message, 'error'));
         } else {
             const filtered = (JSON.parse(localStorage.getItem('orders')) || []).filter(o => String(o.id) !== String(id));
             localStorage.setItem('orders', JSON.stringify(filtered));
             renderOrders();
-            showToast('ลบออเดอร์สำเร็จ! 🗑️', 'ออเดอร์ถูกลบออกจากระบบแล้ว', 'success');
+            showToast('<i data-lucide="trash-2" style="width:20px;height:20px;vertical-align:text-bottom;"></i> ลบออเดอร์สำเร็จ!', 'ออเดอร์ถูกลบออกจากระบบแล้ว', 'success');
+        }
+    } else if (btn.classList.contains('btn-cancel-order')) {
+        if (btn.disabled) return;
+        if(!confirm('ยืนยันยกเลิกออเดอร์นี้?\nลูกค้าจะเห็นสถานะยกเลิกทันที')) return;
+        if(useFirebase) {
+            db.collection('orders').doc(id).update({ status: 'ยกเลิก' })
+                .then(() => showToast('<i data-lucide="x-circle" style="width:20px;height:20px;vertical-align:text-bottom;"></i> ยกเลิกออเดอร์แล้ว', 'อัปเดตสถานะเป็นยกเลิกเรียบร้อย', 'success'))
+                .catch(err => showToast('เกิดข้อผิดพลาด', err.message, 'error'));
+        } else {
+            let orders = JSON.parse(localStorage.getItem('orders')) || [];
+            const idx = orders.findIndex(o => String(o.id) === String(id));
+            if(idx !== -1) { orders[idx].status = 'ยกเลิก'; localStorage.setItem('orders', JSON.stringify(orders)); renderOrders(); }
+            showToast('<i data-lucide="x-circle" style="width:20px;height:20px;vertical-align:text-bottom;"></i> ยกเลิกออเดอร์แล้ว', 'อัปเดตสถานะเป็นยกเลิกเรียบร้อย', 'success');
         }
     } else if (btn.classList.contains('btn-view')) {
         viewOrderDetails(id);
     }
 });
 
-// Status change
-orderListContainer.addEventListener('change', (e) => {
-    const sel = e.target.closest('.status-select');
-    if (sel) {
-        const id = sel.getAttribute('data-id');
-        const status = sel.value;
-        if(useFirebase) db.collection('orders').doc(id).update({ status: status });
-        else {
-            let orders = JSON.parse(localStorage.getItem('orders')) || [];
-            const idx = orders.findIndex(o => String(o.id) === String(id));
-            if(idx !== -1) { orders[idx].status = status; localStorage.setItem('orders', JSON.stringify(orders)); renderOrders(); }
-        }
+// Status change is managed by Chef (KDS) only - Admin is read-only for status
+// orderListContainer 'change' listener removed intentionally
+
+
+// --- Helper to load products without rendering ---
+function loadProducts(callback) {
+    if (useFirebase) {
+        db.collection('menu').get().then(snap => {
+            currentProducts = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            if (callback) callback();
+        }).catch(err => console.error('Failed to load products', err));
+    } else {
+        currentProducts = JSON.parse(localStorage.getItem('menuItems')) || [];
+        if (callback) callback();
     }
-});
+}
 
 // --- Product Logic ---
 function renderProducts() {
@@ -198,12 +251,13 @@ function displayProducts(products) {
                 </div>
             </div>
             <div style="font-weight:600; color:var(--primary);">฿${p.price}</div>
-            <div class="action-btns">
-                <button type="button" class="btn-sm ${isAvailable ? 'btn-available' : 'btn-sold-out'} btn-toggle-stock" data-id="${p.id}" data-status="${isAvailable}">
+            <div class="action-btns" style="display: flex; gap: 5px; flex-wrap: nowrap;">
+                <button type="button" class="btn-sm ${isAvailable ? 'btn-available' : 'btn-sold-out'} btn-toggle-stock" data-id="${p.id}" data-status="${isAvailable}" style="white-space: nowrap;">
                     ${isAvailable ? 'มีของ' : 'ของหมด'}
                 </button>
-                <button type="button" class="btn-sm btn-edit btn-edit-prod" data-id="${p.id}">แก้ไข</button>
-                <button type="button" class="btn-sm btn-delete btn-delete-prod" data-id="${p.id}">ลบ</button>
+                <button type="button" class="btn-sm btn-edit btn-edit-prod" data-id="${p.id}" style="white-space: nowrap;">แก้ไข</button>
+                <button type="button" class="btn-sm btn-edit-ingredients" data-id="${p.id}" style="background: #10b981; color: white; border: none; white-space: nowrap;">สูตร/วิธีทำ</button>
+                <button type="button" class="btn-sm btn-delete btn-delete-prod" data-id="${p.id}" style="white-space: nowrap;">ลบ</button>
             </div>
         </div>
     `;}).join('');
@@ -225,26 +279,24 @@ if (productListContainer) {
             
             if(useFirebase) {
                 db.collection('menu').doc(id).delete()
-                    .then(() => {
-                        showToast('ลบสำเร็จ! 🗑️', 'เมนูถูกลบแล้ว', 'success');
-                        // ไม่ต้องรัน render ใหม่เพราะ onSnapshot จะจัดการเอง
-                    })
-                    .catch(err => showToast('เกิดข้อผิดพลาด', err.message, 'error'));
+                    .then(() => showToast('<i data-lucide="trash-2" style="width:20px;height:20px;vertical-align:text-bottom;"></i> ลบสำเร็จ!', 'เมนูถูกลบแล้ว', 'success'));
             } else {
                 const filtered = currentProducts.filter(p => String(p.id) !== String(id));
                 localStorage.setItem('menuItems', JSON.stringify(filtered));
                 renderProducts();
-                showToast('ลบสำเร็จ! 🗑️', 'เมนูถูกลบออกจากเครื่องแล้ว', 'success');
+                showToast('<i data-lucide="trash-2" style="width:20px;height:20px;vertical-align:text-bottom;"></i> ลบสำเร็จ!', 'เมนูถูกลบออกจากเครื่องแล้ว', 'success');
             }
         } else if (btn.classList.contains('btn-edit-prod')) {
             editProduct(id);
+        } else if (btn.classList.contains('btn-edit-ingredients')) {
+            openIngredientModal(id);
         } else if (btn.classList.contains('btn-toggle-stock')) {
             const currentStatus = btn.getAttribute('data-status') === 'true';
             const newStatus = !currentStatus;
             
             if(useFirebase) {
                 db.collection('menu').doc(id).update({ isAvailable: newStatus })
-                    .then(() => showToast(newStatus ? 'เปิดขายแล้ว! 🥗' : 'ปิดการขาย! ❌', 'อัปเดตสถานะสินค้าเรียบร้อย', 'success'))
+                    .then(() => showToast(newStatus ? '<i data-lucide="play" style="width:20px;height:20px;vertical-align:text-bottom;"></i> เปิดขายแล้ว!' : '<i data-lucide="pause" style="width:20px;height:20px;vertical-align:text-bottom;"></i> ปิดการขาย!', 'อัปเดตสถานะสินค้าเรียบร้อย', 'success'))
                     .catch(err => showToast('เกิดข้อผิดพลาด', err.message, 'error'));
             }
         }
@@ -258,9 +310,7 @@ function viewOrderDetails(id) {
 
     const slipHTML = order.slipImage
         ? `<div style="margin-top:18px;">
-               <p style="font-weight:700; margin-bottom:10px; color:#ff6b00;">
-                   🧾 สลิปการโอนเงิน
-               </p>
+               <h5 style="color: #ffb380; margin-bottom: 5px;"><i data-lucide="receipt" style="width:16px;height:16px;vertical-align:text-bottom;"></i> สลิปการโอนเงิน</h5>
                <div style="position:relative; display:inline-block; cursor:zoom-in;"
                     onclick="window.open(this.querySelector('img').src,'_blank')">
                    <img src="${order.slipImage}"
@@ -277,7 +327,7 @@ function viewOrderDetails(id) {
         : `<div style="margin-top:18px; padding:14px; background:#fff8f5;
                        border-radius:12px; border:1px dashed #ffb380; text-align:center;
                        color:#aaa; font-size:0.88rem;">
-               ⚠️ ไม่พบสลิปการโอนเงิน
+               <p style="color: #aaa; font-style: italic;"><i data-lucide="alert-triangle" style="width:16px;height:16px;vertical-align:text-bottom;"></i> ไม่พบสลิปการโอนเงิน</p>
            </div>`;
 
     const ts = order.timestamp
@@ -350,9 +400,7 @@ function viewOrderDetails(id) {
         <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
             <!-- สลิปการโอน -->
             <div style="margin-bottom: 25px;">
-                <p style="font-size: 0.8rem; color: #666; margin-bottom: 10px; font-weight: 700; display: flex; align-items: center; gap: 5px;">
-                    <i data-lucide="receipt"></i> 🧾 สลิปการโอนเงินจากลูกค้า
-                </p>
+                <h4 style="color: #ffb380; margin-bottom: 10px;"><i data-lucide="receipt"></i> สลิปการโอนเงินจากลูกค้า</h4>
                 <div style="max-width: 100%; border-radius: 16px; overflow: hidden; border: 1px solid #eee;">
                     ${slipHTML}
                 </div>
@@ -375,11 +423,71 @@ function viewOrderDetails(id) {
                 }
             </div>
         </div>
+        
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button class="btn btn-primary" style="flex: 1; padding: 10px;" onclick="printReceipt('${order.id}')"><i data-lucide="printer"></i> พิมพ์ใบเสร็จ</button>
+        </div>
     `;
     document.getElementById('order-details-modal').classList.add('active');
+    lucide.createIcons();
 }
 
-function editProduct(id) {
+
+// ==========================================
+// ====== INGREDIENT / OPTIONS EDITOR =======
+// ==========================================
+
+window.openIngredientModal = function(id) {
+    const p = currentProducts.find(prod => String(prod.id) === String(id));
+    if(!p) return;
+
+    document.getElementById('ingredient-product-id').value = id;
+    document.getElementById('ingredient-product-name').innerText = p.name;
+    
+    // Load existing recipe data or default empty string
+    document.getElementById('recipe-ingredients').value = p.ingredients || '';
+    document.getElementById('recipe-steps').value = p.recipeSteps || '';
+
+    document.getElementById('ingredient-edit-modal').classList.add('active');
+};
+
+const saveIngredientChangesBtn = document.getElementById('save-ingredient-changes');
+if (saveIngredientChangesBtn) {
+    saveIngredientChangesBtn.addEventListener('click', () => {
+        const id = document.getElementById('ingredient-product-id').value;
+        const ingredients = document.getElementById('recipe-ingredients').value;
+        const recipeSteps = document.getElementById('recipe-steps').value;
+        
+        const updateData = {
+            ingredients: ingredients,
+            recipeSteps: recipeSteps
+        };
+        
+        if (useFirebase) {
+            db.collection('menu').doc(id).update(updateData)
+                .then(() => {
+                    showToast('<i data-lucide="check-circle" style="width:20px;height:20px;vertical-align:text-bottom;"></i> สำเร็จ!', 'บันทึกสูตรและวิธีทำเรียบร้อย', 'success');
+                    document.getElementById('ingredient-edit-modal').classList.remove('active');
+                })
+                .catch(err => showToast('เกิดข้อผิดพลาด', err.message, 'error'));
+        } else {
+            let products = JSON.parse(localStorage.getItem('menuItems')) || [];
+            const idx = products.findIndex(p => String(p.id) === String(id));
+            if (idx !== -1) {
+                products[idx].ingredients = ingredients;
+                products[idx].recipeSteps = recipeSteps;
+                localStorage.setItem('menuItems', JSON.stringify(products));
+                renderProducts(); // Refresh list
+                showToast('<i data-lucide="check-circle" style="width:20px;height:20px;vertical-align:text-bottom;"></i> สำเร็จ!', 'บันทึกสูตรและวิธีทำเรียบร้อย', 'success');
+                document.getElementById('ingredient-edit-modal').classList.remove('active');
+            }
+        }
+    });
+}
+
+// ==========================================
+
+window.editProduct = function(id) {
     console.log("Editing product ID:", id);
     // ค้นหาสินค้าโดยรองรับทั้ง string และ number
     const p = currentProducts.find(prod => String(prod.id) === String(id));
@@ -400,7 +508,7 @@ function editProduct(id) {
     document.getElementById('prod-status').value = (p.isAvailable !== false).toString();
     
     document.getElementById('product-modal').classList.add('active');
-}
+};
 
 window.openProductModal = () => {
     document.getElementById('modal-title').innerText = 'เพิ่มเมนูใหม่';
@@ -432,7 +540,7 @@ window.saveProduct = () => {
             : db.collection('menu').add(data);
             
         promise.then(() => {
-            showToast('สำเร็จ! ✨', 'บันทึกข้อมูลเมนูเรียบร้อยแล้ว', 'success');
+            showToast('<i data-lucide="check-circle" style="width:20px;height:20px;vertical-align:text-bottom;"></i> สำเร็จ!', 'บันทึกข้อมูลเมนูเรียบร้อยแล้ว', 'success');
             document.getElementById('product-modal').classList.remove('active');
         }).catch(err => {
             showToast('เกิดข้อผิดพลาด', err.message, 'error');
@@ -447,40 +555,501 @@ window.saveProduct = () => {
         }
         localStorage.setItem('menuItems', JSON.stringify(products));
         renderProducts();
-        showToast('สำเร็จ! ✨', 'บันทึกข้อมูลลงเครื่องเรียบร้อยแล้ว', 'success');
+        showToast('<i data-lucide="check-circle" style="width:20px;height:20px;vertical-align:text-bottom;"></i> สำเร็จ!', 'บันทึกข้อมูลลงเครื่องเรียบร้อยแล้ว', 'success');
         document.getElementById('product-modal').classList.remove('active');
     }
 };
 
 // Events
-document.getElementById('save-product').onclick = window.saveProduct;
-document.getElementById('close-product-modal').onclick = () => document.getElementById('product-modal').classList.remove('active');
-document.getElementById('close-order-modal').onclick = () => document.getElementById('order-details-modal').classList.remove('active');
-document.getElementById('close-order-modal-btn').onclick = () => document.getElementById('order-details-modal').classList.remove('active');
+const saveProductBtn = document.getElementById('save-product');
+if (saveProductBtn) saveProductBtn.onclick = window.saveProduct;
+
+document.getElementById('close-product-modal')?.addEventListener('click', () => {
+    document.getElementById('product-modal').classList.remove('active');
+});
+document.getElementById('close-order-modal')?.addEventListener('click', () => {
+    document.getElementById('order-details-modal').classList.remove('active');
+});
+document.getElementById('close-order-modal-btn')?.addEventListener('click', () => {
+    document.getElementById('order-details-modal').classList.remove('active');
+});
 
 function updateStats(orders) {
     document.getElementById('today-orders').innerText = orders.length;
-    const total = orders.reduce((sum, o) => sum + (o.status !== 'ยกเลิก' ? (Number(o.total) || 0) : 0), 0);
-    document.getElementById('total-revenue').innerText = `฿${total.toLocaleString()}`;
+    
+    let totalRev = 0;
+    let deliveryRev = 0;
+    let posRev = 0;
+
+    orders.forEach(o => {
+        if (o.status !== 'ยกเลิก') {
+            const amt = Number(o.total) || 0;
+            totalRev += amt;
+            if (o.orderType === 'delivery' || !o.orderType) {
+                deliveryRev += amt;
+            } else if (o.orderType === 'walk-in' || o.orderType === 'dining') {
+                posRev += amt;
+            }
+        }
+    });
+
+    document.getElementById('total-revenue').innerText = `฿${totalRev.toLocaleString()}`;
+    const elDel = document.getElementById('delivery-revenue');
+    const elPos = document.getElementById('pos-revenue');
+    if (elDel) elDel.innerText = `฿${deliveryRev.toLocaleString()}`;
+    if (elPos) elPos.innerText = `฿${posRev.toLocaleString()}`;
 }
+
+// --- Shop Status Toggle ---
+const shopToggleSidebar = document.getElementById('shop-status-toggle');
+const shopToggleMain = document.getElementById('shop-status-toggle-main');
+const shopStatusText = document.getElementById('shop-status-text');
+const shopStatusDot = document.getElementById('shop-status-dot');
+
+function updateShopUI(isOpen) {
+    if (shopToggleSidebar) shopToggleSidebar.checked = isOpen;
+    if (shopToggleMain) shopToggleMain.checked = isOpen;
+    if (shopStatusText) {
+        shopStatusText.innerHTML = isOpen ? '<i data-lucide="store" style="width:16px;height:16px;vertical-align:text-bottom;"></i> เปิดร้านอยู่' : '<i data-lucide="moon" style="width:16px;height:16px;vertical-align:text-bottom;"></i> ปิดร้านอยู่';
+        shopStatusText.style.color = isOpen ? '#22c55e' : '#ef4444';
+    }
+    if (shopStatusDot) {
+        shopStatusDot.style.background = isOpen ? '#22c55e' : '#ef4444';
+    }
+}
+
+function initShopStatus() {
+    if (useFirebase) {
+        db.collection('settings').doc('shop').onSnapshot(doc => {
+            if (doc.exists) {
+                updateShopUI(doc.data().isOpen);
+            } else {
+                db.collection('settings').doc('shop').set({ isOpen: true });
+                updateShopUI(true);
+            }
+        });
+    } else {
+        const isOpen = localStorage.getItem('shopOpen') !== 'false';
+        updateShopUI(isOpen);
+    }
+}
+
+function handleShopToggle(isOpen) {
+    if (useFirebase) {
+        db.collection('settings').doc('shop').update({ isOpen: isOpen })
+            .then(() => showToast(isOpen ? '<i data-lucide="store" style="width:20px;height:20px;vertical-align:text-bottom;"></i> เปิดร้านแล้ว!' : '<i data-lucide="moon" style="width:20px;height:20px;vertical-align:text-bottom;"></i> ปิดร้านแล้ว!', `ร้านอาหารเปลี่ยนสถานะเป็น ${isOpen ? 'เปิด' : 'ปิด'}`, 'success'))
+            .catch(err => showToast('เกิดข้อผิดพลาด', err.message, 'error'));
+    } else {
+        localStorage.setItem('shopOpen', isOpen);
+        updateShopUI(isOpen);
+        showToast(isOpen ? '<i data-lucide="store" style="width:20px;height:20px;vertical-align:text-bottom;"></i> เปิดร้านแล้ว!' : '<i data-lucide="moon" style="width:20px;height:20px;vertical-align:text-bottom;"></i> ปิดร้านแล้ว!', `ร้านอาหารเปลี่ยนสถานะเป็น ${isOpen ? 'เปิด' : 'ปิด'}`, 'success');
+    }
+}
+
+if (shopToggleSidebar) shopToggleSidebar.onchange = () => handleShopToggle(shopToggleSidebar.checked);
+if (shopToggleMain) shopToggleMain.onchange = () => handleShopToggle(shopToggleMain.checked);
 
 // Start
 window.switchTab('orders');
+initShopStatus();
 lucide.createIcons();
 
 // --- Helper to clear all products ---
 window.clearAllProducts = async () => {
-    if(!confirm('🚨 ยันยืนการลบสินค้าทุกอย่างออกจากร้าน? การกระทำนี้ไม่สามารถย้อนกลับได้!')) return;
+    if(!confirm('ยันยืนการลบสินค้าทุกอย่างออกจากร้าน? การกระทำนี้ไม่สามารถย้อนกลับได้!')) return;
     
     if(useFirebase) {
         const snap = await db.collection('menu').get();
         const batch = db.batch();
         snap.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
-        showToast('ล้างข้อมูลสำเร็จ! 🗑️', 'เมนูทั้งหมดถูกลบออกจากระบบแล้ว', 'success');
+        showToast('<i data-lucide="trash-2" style="width:20px;height:20px;vertical-align:text-bottom;"></i> ล้างข้อมูลสำเร็จ!', 'เมนูทั้งหมดถูกลบออกจากระบบแล้ว', 'success');
     } else {
         localStorage.removeItem('menuItems');
         renderProducts();
-        showToast('ล้างข้อมูลสำเร็จ! 🗑️', 'เมนูทั้งหมดถูกลบออกจากเครื่องแล้ว', 'success');
+        showToast('<i data-lucide="trash-2" style="width:20px;height:20px;vertical-align:text-bottom;"></i> ล้างข้อมูลสำเร็จ!', 'เมนูทั้งหมดถูกลบออกจากเครื่องแล้ว', 'success');
     }
+};
+
+// ==========================================
+// ========== POS SYSTEM LOGIC ==============
+// ==========================================
+
+let posCart = [];
+let posCurrentCategory = 'all';
+let posPendingProduct = null;
+
+// --- Rendering POS Menu ---
+window.renderPosMenu = function() {
+    const grid = document.getElementById('pos-menu-grid');
+    if (!grid) return;
+    
+    let items = currentProducts;
+    if (posCurrentCategory !== 'all') {
+        items = currentProducts.filter(p => p.category === posCurrentCategory);
+    }
+    
+    if (items.length === 0) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1; text-align: center; padding: 50px;">
+                <i data-lucide="clipboard-list" style="width:64px;height:64px;opacity:0.3;margin-bottom:15px;"></i>
+                <p style="font-size:1.1rem;">ยังไม่มีออเดอร์</p>
+            </div>`;
+        return;
+    }
+    
+    grid.innerHTML = items.map(p => {
+        const isAvail = p.isAvailable !== false;
+        return `
+            <div class="pos-item-card ${!isAvail ? 'sold-out' : ''}" onclick="${isAvail ? `openPosCustomModal('${p.id}')` : 'void(0)'}">
+                <img src="${p.image}" class="pos-item-img" onerror="this.src='https://images.unsplash.com/photo-1586816001966-79b736744398?auto=format&fit=crop&q=80&w=200'">
+                <div class="pos-item-title">${p.name}</div>
+                <div class="pos-item-price">฿${p.price}</div>
+            </div>
+        `;
+    }).join('');
+    lucide.createIcons();
+};
+
+window.filterPosMenu = function(cat, btnElement) {
+    posCurrentCategory = cat;
+    document.querySelectorAll('.pos-cat-btn').forEach(btn => {
+        btn.style.background = 'transparent';
+        btn.style.color = 'var(--primary)';
+    });
+    btnElement.style.background = 'var(--primary)';
+    btnElement.style.color = 'white';
+    renderPosMenu();
+};
+
+// --- Add to POS Cart ---
+window.openPosCustomModal = function(id) {
+    posPendingProduct = currentProducts.find(p => String(p.id) === String(id));
+    if (!posPendingProduct) return;
+    
+    if (posPendingProduct.category === 'dessert') {
+        addDirectToPosCart(posPendingProduct);
+        return;
+    }
+    
+    document.getElementById('pos-modal-product-name').innerText = `ปรับแต่ง ${posPendingProduct.name}`;
+    const dynamicContainer = document.getElementById('pos-dynamic-options-container');
+    dynamicContainer.innerHTML = '';
+    
+    if (posPendingProduct.options && posPendingProduct.options.trim() !== '') {
+        const optionsList = posPendingProduct.options.split(',').map(opt => opt.trim()).filter(opt => opt);
+        if (optionsList.length > 0) {
+            dynamicContainer.style.display = 'block';
+            let html = '<p style="margin-bottom: 10px; font-weight: 600;">ตัวเลือกเพิ่มเติม:</p>';
+            html += '<div style="display: flex; flex-direction: column; gap: 10px;">';
+            optionsList.forEach((opt, index) => {
+                let label = opt;
+                let price = 0;
+                if (opt.includes(':')) {
+                    const parts = opt.split(':');
+                    label = parts[0].trim();
+                    price = parseInt(parts[1]) || 0;
+                }
+                html += `
+                    <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; background: #f9f9f9; padding: 10px; border-radius: 10px;">
+                        <div>
+                            <input type="checkbox" class="pos-dynamic-cb" value="${label}" data-price="${price}">
+                            <span style="font-weight: 500; margin-left: 8px;">${label}</span>
+                        </div>
+                        ${price > 0 ? `<span style="color: var(--primary); font-weight: 600;">+฿${price}</span>` : ''}
+                    </label>
+                `;
+            });
+            html += '</div>';
+            dynamicContainer.innerHTML = html;
+        } else {
+            dynamicContainer.style.display = 'none';
+        }
+    } else {
+        dynamicContainer.style.display = 'none';
+    }
+    
+    document.getElementById('pos-opt-note').value = '';
+    document.getElementById('pos-custom-modal').classList.add('active');
+};
+
+document.getElementById('pos-confirm-add').onclick = () => {
+    let price = posPendingProduct.price;
+    const cbs = document.querySelectorAll('.pos-dynamic-cb:checked');
+    const selectedOpts = [];
+    let extraPrice = 0;
+    
+    cbs.forEach(cb => {
+        const itemPrice = parseInt(cb.getAttribute('data-price')) || 0;
+        selectedOpts.push({ name: cb.value, price: itemPrice });
+        extraPrice += itemPrice;
+    });
+    
+    price += extraPrice;
+    
+    const options = { note: document.getElementById('pos-opt-note').value };
+    if (selectedOpts.length > 0) options.dynamic = selectedOpts;
+    
+    posCart.push({
+        ...posPendingProduct,
+        cartItemId: Date.now(),
+        finalPrice: price,
+        customOptions: options,
+        quantity: 1
+    });
+    
+    updatePosCart();
+    document.getElementById('pos-custom-modal').classList.remove('active');
+};
+
+window.addDirectToPosCart = function(product) {
+    posCart.push({
+        ...product,
+        cartItemId: Date.now(),
+        finalPrice: product.price,
+        customOptions: { note: '', isDirect: true },
+        quantity: 1
+    });
+    updatePosCart();
+};
+
+window.removePosCartItem = function(cartItemId) {
+    posCart = posCart.filter(item => item.cartItemId !== cartItemId);
+    updatePosCart();
+};
+
+window.clearPosCart = function() {
+    if (posCart.length === 0) return;
+    if (confirm('ยืนยันการล้างตะกร้า?')) {
+        posCart = [];
+        document.getElementById('pos-discount').value = 0;
+        updatePosCart();
+    }
+};
+
+window.updatePosTotals = function() {
+    const subtotal = posCart.reduce((sum, item) => sum + (item.finalPrice * (item.quantity || 1)), 0);
+    const discount = parseInt(document.getElementById('pos-discount').value) || 0;
+    const total = Math.max(0, subtotal - discount);
+    
+    document.getElementById('pos-subtotal').innerText = `฿${subtotal}`;
+    document.getElementById('pos-total').innerText = `฿${total}`;
+    return { subtotal, discount, total };
+};
+
+window.updatePosCart = function() {
+    const container = document.getElementById('pos-cart-items');
+    document.getElementById('pos-cart-count').innerText = posCart.length;
+    
+    if (posCart.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #aaa; margin-top: 20px;">ไม่มีรายการในตะกร้า</p>';
+    } else {
+        container.innerHTML = posCart.map(item => {
+            let customParts = [];
+            if (item.customOptions.dynamic) {
+                customParts.push(item.customOptions.dynamic.map(d => `${d.name}${d.price > 0 ? ` (+฿${d.price})` : ''}`).join(', '));
+            }
+            if (item.customOptions.note) customParts.push(item.customOptions.note);
+            const customText = customParts.join(', ');
+            
+            return `
+                <div class="pos-cart-item">
+                    <div class="pos-cart-item-info">
+                        <h5>${item.name}</h5>
+                        <p>${customText || 'ปกติ'}</p>
+                    </div>
+                    <div class="pos-cart-controls">
+                        <span class="pos-cart-item-price">฿${item.finalPrice}</span>
+                        <button class="pos-qty-btn" onclick="removePosCartItem(${item.cartItemId})" style="color: #ef4444; border-color: #ef4444;"><i data-lucide="x" style="width:12px;height:12px;"></i></button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        lucide.createIcons();
+    }
+    updatePosTotals();
+};
+
+// --- Checkout Modals ---
+window.openPosCashModal = function() {
+    if (posCart.length === 0) return showToast('ไม่สามารถชำระเงินได้', 'ตะกร้าสินค้าว่างเปล่า', 'error');
+    const { total } = updatePosTotals();
+    document.getElementById('cash-modal-total').innerText = total;
+    document.getElementById('cash-received').value = '';
+    document.getElementById('cash-change').innerText = '฿0';
+    document.getElementById('pos-cash-modal').classList.add('active');
+};
+
+window.openPosQrModal = function() {
+    if (posCart.length === 0) return showToast('ไม่สามารถชำระเงินได้', 'ตะกร้าสินค้าว่างเปล่า', 'error');
+    const { total } = updatePosTotals();
+    document.getElementById('qr-modal-total').innerText = total;
+    document.getElementById('pos-qr-modal').classList.add('active');
+};
+
+window.calculateChange = function() {
+    const { total } = updatePosTotals();
+    const received = parseInt(document.getElementById('cash-received').value) || 0;
+    const change = received - total;
+    const el = document.getElementById('cash-change');
+    if (change < 0) {
+        el.innerText = 'จำนวนเงินไม่พอ';
+        el.style.color = '#ef4444';
+    } else {
+        el.innerText = `฿${change}`;
+        el.style.color = '#15803d';
+    }
+};
+
+window.addQuickCash = function(amt) {
+    const input = document.getElementById('cash-received');
+    let curr = parseInt(input.value) || 0;
+    input.value = curr + amt;
+    calculateChange();
+};
+
+window.exactCash = function() {
+    const { total } = updatePosTotals();
+    document.getElementById('cash-received').value = total;
+    calculateChange();
+};
+
+window.confirmPosOrder = function(method) {
+    const { subtotal, discount, total } = updatePosTotals();
+    let cashReceived = 0;
+    
+    if (method === 'cash') {
+        cashReceived = parseInt(document.getElementById('cash-received').value) || 0;
+        if (cashReceived < total) {
+            return showToast('รับเงินไม่พอ', 'กรุณาระบุจำนวนเงินที่รับมาให้ถูกต้อง', 'error');
+        }
+    }
+    
+    const typeRadios = document.getElementsByName('pos-order-type');
+    let orderType = 'walk-in';
+    for (let r of typeRadios) { if (r.checked) orderType = r.value; }
+    
+    const orderData = {
+        customerName: 'ลูกค้าหน้าร้าน',
+        phone: '-',
+        address: orderType === 'dining' ? 'ทานที่ร้าน' : 'สั่งกลับบ้าน',
+        items: posCart,
+        subtotal: subtotal,
+        discount: discount,
+        total: total,
+        status: 'เสร็จสิ้น', // หน้าร้านมักจะเสร็จสิ้นทันที หรือเป็น 'รอดำเนินการ' ก็ได้
+        orderType: orderType,
+        paymentMethod: method,
+        cashReceived: method === 'cash' ? cashReceived : null,
+        timestamp: useFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
+    };
+
+    if (useFirebase) {
+        db.collection('orders').add(orderData).then((docRef) => {
+            finishPosOrder(docRef.id);
+        }).catch(err => showToast('ข้อผิดพลาด', err.message, 'error'));
+    } else {
+        const orders = JSON.parse(localStorage.getItem('orders')) || [];
+        const newId = Date.now();
+        orders.push({ id: newId, ...orderData });
+        localStorage.setItem('orders', JSON.stringify(orders));
+        finishPosOrder(newId);
+    }
+};
+
+window.finishPosOrder = function(orderId) {
+    document.getElementById('pos-cash-modal').classList.remove('active');
+    document.getElementById('pos-qr-modal').classList.remove('active');
+    
+    // พิมพ์ใบเสร็จอัตโนมัติ
+    if (confirm('บันทึกออเดอร์สำเร็จ!\nต้องการพิมพ์ใบเสร็จรับเงินหรือไม่?')) {
+        printReceipt(orderId);
+    }
+    
+    posCart = [];
+    document.getElementById('pos-discount').value = 0;
+    updatePosCart();
+    showToast('<i data-lucide="check-circle" style="width:20px;height:20px;vertical-align:text-bottom;"></i> เสร็จสิ้น!', 'บันทึกออเดอร์หน้าร้านเรียบร้อย', 'success');
+};
+
+// --- Print Logic ---
+window.printReceipt = async function(orderId) {
+    let order = null;
+    if (useFirebase) {
+        const doc = await db.collection('orders').doc(orderId).get();
+        if(doc.exists) order = { id: doc.id, ...doc.data() };
+    } else {
+        const orders = JSON.parse(localStorage.getItem('orders')) || [];
+        order = orders.find(o => String(o.id) === String(orderId));
+    }
+    if (!order) return showToast('ไม่พบออเดอร์', '', 'error');
+    
+    const dateObj = order.timestamp && order.timestamp.toDate ? order.timestamp.toDate() : new Date(order.timestamp);
+    const dateStr = dateObj.toLocaleString('th-TH');
+    
+    let html = `
+        <div class="receipt-header">
+            <div class="receipt-title">HOMIE BOY</div>
+            <div>ใบเสร็จรับเงิน / Receipt</div>
+            <div>ออเดอร์: #${String(order.id).slice(-6).toUpperCase()}</div>
+            <div>วันที่: ${dateStr}</div>
+            <div>ประเภท: ${order.orderType === 'dining' ? 'ทานที่ร้าน' : order.orderType === 'walk-in' ? 'สั่งกลับบ้าน' : 'Delivery'}</div>
+        </div>
+        <div class="receipt-line"></div>
+    `;
+    
+    order.items.forEach(item => {
+        let optStr = '';
+        if (item.customOptions) {
+            let parts = [];
+            if (item.customOptions.dynamic) parts.push(item.customOptions.dynamic.map(d=>d.name).join(', '));
+            if (item.customOptions.note) parts.push(item.customOptions.note);
+            optStr = parts.join(', ');
+        }
+        
+        html += `
+            <div class="receipt-item">
+                <span>1x ${item.name}</span>
+                <span>${item.finalPrice}</span>
+            </div>
+        `;
+        if (optStr) html += `<div class="receipt-item-desc">- ${optStr}</div>`;
+    });
+    
+    html += `<div class="receipt-line"></div>`;
+    if (order.discount && order.discount > 0) {
+        html += `
+            <div class="receipt-item"><span>ส่วนลด</span><span>-${order.discount}</span></div>
+        `;
+    }
+    html += `
+        <div class="receipt-total">
+            <span>ยอดสุทธิ</span>
+            <span>฿${order.total}</span>
+        </div>
+    `;
+    
+    if (order.paymentMethod === 'cash') {
+        html += `
+            <div class="receipt-item" style="margin-top:5px;"><span>รับเงิน (เงินสด)</span><span>${order.cashReceived || order.total}</span></div>
+            <div class="receipt-item"><span>เงินทอน</span><span>${(order.cashReceived || order.total) - order.total}</span></div>
+        `;
+    } else {
+        html += `<div class="receipt-item" style="margin-top:5px;"><span>ชำระผ่าน</span><span>${order.paymentMethod === 'promptpay' ? 'PromptPay' : 'โอนเงิน'}</span></div>`;
+    }
+    
+    html += `
+        <div class="receipt-line"></div>
+        <div class="receipt-footer">
+            ขอบคุณที่อุดหนุน<br>
+            Thank you!
+        </div>
+    `;
+    
+    const printArea = document.getElementById('print-area');
+    printArea.innerHTML = html;
+    
+    // หน่วงเวลาเล็กน้อยเพื่อให้เบราว์เซอร์เรนเดอร์ก่อนสั่งปริ้น
+    setTimeout(() => {
+        window.print();
+    }, 300);
 };

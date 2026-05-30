@@ -8,10 +8,54 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
+    <style>
+        /* Shop Closed Overlay */
+        #shop-closed-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+        #shop-closed-overlay.active { display: flex; }
+        .closed-icon {
+            width: 120px;
+            height: 120px;
+            background: #fff0e5;
+            color: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(255, 107, 0, 0.15);
+        }
+        .closed-title { font-size: 2rem; font-weight: 800; margin-bottom: 10px; color: var(--text); }
+        .closed-desc { color: #888; max-width: 400px; line-height: 1.6; }
+    </style>
+</head>
 <body>
+    <!-- Shop Closed Overlay -->
+    <div id="shop-closed-overlay">
+        <div class="closed-icon">
+            <i data-lucide="store" style="width: 60px; height: 60px;"></i>
+        </div>
+        <h2 class="closed-title">ขออภัย ร้านปิดแล้ว <i data-lucide="moon" style="width: 24px; height: 24px; margin-left: 8px; vertical-align: text-bottom;"></i></h2>
+        <p class="closed-desc">ขณะนี้อยู่นอกเวลาทำการ หรือร้านกำลังปิดปรับปรุงชั่วคราว กรุณากลับมาสั่งใหม่อีกครั้งในเวลาเปิดทำการครับ<br>
+            ร้านเปิดเวลา<br> วันเสาร์ - วันอาทิตย์ 12:00 PM - 10:00PM<br>
+            วันจันทร์ -  วันศุกร์ 5:00PM - 10:00PM<br>
+        </p>
+        <p style="margin-top: 20px; font-weight: 600; color: var(--primary);">Homie Boy | ขอบคุณครับ</p>
+    </div>
     <!-- Navbar -->
     <nav id="navbar">
-        <a href="#" class="logo">
+        <a href="#" class="logo">   
             <img src="logohomieboy.png" alt="Homie Boy Logo" style="height: 40px; width: auto; margin-right: 10px;">
             Homie Boy
         </a>
@@ -176,7 +220,7 @@
                 </div>
             </div>
 
-            <button class="btn btn-primary" style="width: 100%;" id="submit-order">✔ ยืนยันและชำระเงิน</button>
+                <button class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;" id="submit-order"><i data-lucide="check-circle" style="width: 18px; height: 18px;"></i> ยืนยันและชำระเงิน</button>
         </div>
     </div>
 
@@ -190,7 +234,7 @@
                     </svg>
                 </div>
             </div>
-            <h3>สั่งซื้อสำเร็จแล้ว! 🎉</h3>
+            <h3>สั่งซื้อสำเร็จแล้ว! <i data-lucide="party-popper" style="color: #ff6b00; width: 24px; height: 24px; vertical-align: text-bottom;"></i></h3>
             <p class="success-msg">
                 ออเดอร์ของคุณถูกส่งไปที่ร้านเรียบร้อยแล้ว<br>
                 กรุณารอรับสินค้าในไม่ช้า

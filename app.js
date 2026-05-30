@@ -232,7 +232,7 @@ document.getElementById('confirm-add').onclick = () => {
     price += extraPrice;
 
     if (selectedOptions.length > 0) {
-        options.dynamic = selectedOptions;
+        options.dynamic = selectedOptions.map(o => o.name);
     }
     
     cart.push({
@@ -248,9 +248,22 @@ document.getElementById('confirm-add').onclick = () => {
     openCart();
 };
 
-    document.getElementById('opt-note').value = '';
+function resetCustomOptions() {
+    // Reset special note field
+    const noteEl = document.getElementById('opt-note');
+    if (noteEl) noteEl.value = '';
+    // Reset dynamic checkboxes
     const dynamicCheckboxes = document.querySelectorAll('.dynamic-checkbox');
     dynamicCheckboxes.forEach(cb => cb.checked = false);
+    // Reset legacy option checkboxes if they exist
+    const veg = document.getElementById('opt-no-veggie');
+    if (veg) veg.checked = false;
+    const sauce = document.getElementById('opt-no-sauce');
+    if (sauce) sauce.checked = false;
+    const cheese = document.getElementById('opt-extra-cheese');
+    if (cheese) cheese.checked = false;
+}
+
 
 // --- Cart Logic ---
 function updateCart() {
@@ -339,6 +352,8 @@ document.getElementById('submit-order').onclick = () => {
         items: cart,
         total: cart.reduce((sum, item) => sum + item.finalPrice, 0),
         status: 'รอดำเนินการ',
+        orderType: 'delivery',
+        paymentMethod: 'promptpay',
         timestamp: useFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
     };
 
@@ -358,6 +373,8 @@ document.getElementById('submit-order').onclick = () => {
         const newId = Date.now();
         orders.push({ id: newId, ...orderData });
         localStorage.setItem('orders', JSON.stringify(orders));
+        // Notify other pages (e.g., kitchen) of new order
+        window.dispatchEvent(new CustomEvent('orderAdded', { detail: { orderId: newId } }));
         orderSuccess(newId);
     }
 };
@@ -422,10 +439,31 @@ function toggleMobileMenu() {
 }
 document.getElementById('mobile-menu-toggle').onclick = toggleMobileMenu;
 
+// --- Shop Status Monitor ---
+function initShopStatus() {
+    const overlay = document.getElementById('shop-closed-overlay');
+    if (useFirebase) {
+        db.collection('settings').doc('shop').onSnapshot(doc => {
+            if (doc.exists) {
+                const isOpen = doc.data().isOpen;
+                if (!isOpen) overlay.classList.add('active');
+                else overlay.classList.remove('active');
+            }
+        });
+    } else {
+        const isOpen = localStorage.getItem('shopOpen') !== 'false';
+        if (!isOpen) overlay.classList.add('active');
+        else overlay.classList.remove('active');
+    }
+}
+
 // --- Initialize ---
 loadMenu();
+initShopStatus();
 window.onscroll = () => {
     const nav = document.getElementById('navbar');
-    if (window.scrollY > 50) nav.classList.add('scrolled');
-    else nav.classList.remove('scrolled');
+    if (nav) {
+        if (window.scrollY > 50) nav.classList.add('scrolled');
+        else nav.classList.remove('scrolled');
+    }
 };
