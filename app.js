@@ -203,7 +203,6 @@ function addToCartDirectly(product) {
         customOptions: { note: '', isDirect: true }
     });
     updateCart();
-    openCart();
 }
 
 document.getElementById('close-custom').onclick = () => customModal.classList.remove('active');
@@ -245,7 +244,6 @@ document.getElementById('confirm-add').onclick = () => {
     updateCart();
     customModal.classList.remove('active');
     resetCustomOptions();
-    openCart();
 };
 
 function resetCustomOptions() {
