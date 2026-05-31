@@ -25,8 +25,8 @@ const cartCountElement = document.querySelector('.cart-count');
 const customModal = document.getElementById('custom-modal');
 const checkoutModal = document.getElementById('checkout-modal');
 
-// --- Slip Upload Logic (Firebase Storage) ---
-let slipFile = null; // เก็บ File object แทน base64
+// --- Slip Upload Logic ---
+let slipBase64 = null;
 
 const slipFileInput   = document.getElementById('slip-file');
 const slipDropZone    = document.getElementById('slip-drop-zone');
@@ -39,39 +39,23 @@ function handleSlipFile(file) {
     if (file.size > 5 * 1024 * 1024) {
         return alert('ไฟล์ใหญ่เกิน 5MB กรุณาเลือกไฟล์ใหม่');
     }
-    slipFile = file;
-    // แสดง preview ด้วย Object URL (ไม่ต้องแปลงเป็น base64)
-    const previewUrl = URL.createObjectURL(file);
-    slipPreviewImg.src = previewUrl;
-    slipPlaceholder.style.display = 'none';
-    slipPreviewWrap.style.display = 'inline-block';
-    lucide.createIcons();
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        slipBase64 = e.target.result;
+        slipPreviewImg.src = slipBase64;
+        slipPlaceholder.style.display = 'none';
+        slipPreviewWrap.style.display = 'inline-block';
+        lucide.createIcons();
+    };
+    reader.readAsDataURL(file);
 }
 
 function removeSlip() {
-    slipFile = null;
+    slipBase64 = null;
     slipFileInput.value = '';
-    if (slipPreviewImg.src.startsWith('blob:')) URL.revokeObjectURL(slipPreviewImg.src);
     slipPreviewImg.src = '';
     slipPlaceholder.style.display = 'flex';
     slipPreviewWrap.style.display = 'none';
-}
-
-// อัปโหลดสลิปไปยัง Firebase Storage และคืน URL
-async function uploadSlipToStorage(file, orderId) {
-    if (!useFirebase || typeof firebase.storage === 'undefined') {
-        // Fallback: แปลงเป็น base64 ถ้าไม่มี Storage
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.readAsDataURL(file);
-        });
-    }
-    const storage = firebase.storage();
-    const ext = file.name.split('.').pop() || 'jpg';
-    const ref = storage.ref(`slips/${orderId}_${Date.now()}.${ext}`);
-    await ref.put(file);
-    return await ref.getDownloadURL();
 }
 
 slipFileInput.addEventListener('change', (e) => handleSlipFile(e.target.files[0]));
@@ -393,73 +377,51 @@ document.getElementById('checkout-trigger').onclick = () => {
 
 document.getElementById('close-checkout').onclick = () => checkoutModal.classList.remove('active');
 
-document.getElementById('submit-order').onclick = async () => {
-    const customerName = document.getElementById('cust-name').value.trim();
-    const phone = document.getElementById('cust-phone').value.trim();
-    const address = document.getElementById('cust-address').value.trim();
+document.getElementById('submit-order').onclick = () => {
+    const total = cart.reduce((sum, item) => sum + (item.finalPrice * (item.quantity || 1)), 0);
+    const trackToken = (typeof HomieAuth !== 'undefined')
+        ? HomieAuth.generateTrackToken()
+        : Date.now().toString(36) + Math.random().toString(36).slice(2);
+    const orderData = {
+        customerName: document.getElementById('cust-name').value.trim(),
+        phone: document.getElementById('cust-phone').value.trim(),
+        address: document.getElementById('cust-address').value.trim(),
+        slipImage: slipBase64 || null,
+        items: cart,
+        total: total,
+        status: 'รอดำเนินการ',
+        orderType: 'delivery',
+        paymentMethod: 'promptpay',
+        trackToken: trackToken,
+        timestamp: useFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
+    };
 
-    if (!customerName || !phone || !address) {
+    if (!orderData.customerName || !orderData.phone || !orderData.address) {
         return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
     }
-    if (!slipFile) {
+    if (!orderData.slipImage) {
         return alert('กรุณาแนบสลิปการโอนเงินก่อนยืนยัน');
     }
 
-    // ปิดปุ่มป้องกันกดซ้ำ + แสดง loading
-    const submitBtn = document.getElementById('submit-order');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i data-lucide="loader" style="width:18px;height:18px;animation:spin 1s linear infinite;"></i> กำลังอัปโหลด...';
-    lucide.createIcons();
-
-    try {
-        const total = cart.reduce((sum, item) => sum + (item.finalPrice * (item.quantity || 1)), 0);
-        const trackToken = (typeof HomieAuth !== 'undefined')
-            ? HomieAuth.generateTrackToken()
-            : Date.now().toString(36) + Math.random().toString(36).slice(2);
-
-        // อัปโหลดสลิปไป Storage ก่อน ได้ URL กลับมา
-        const tempOrderId = Date.now().toString();
-        const slipUrl = await uploadSlipToStorage(slipFile, tempOrderId);
-
-        const orderData = {
-            customerName,
-            phone,
-            address,
-            slipImage: slipUrl,  // เก็บแค่ URL ไม่ใช่ base64
-            items: cart,
-            total,
-            status: 'รอดำเนินการ',
-            orderType: 'delivery',
-            paymentMethod: 'promptpay',
-            trackToken,
-            timestamp: useFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
-        };
-
-        if (useFirebase) {
-            const docRef = await db.collection('orders').add(orderData);
+    if (useFirebase) {
+        db.collection('orders').add(orderData).then(async (docRef) => {
             try {
                 await HomieAuth.createPublicOrder(docRef.id, trackToken, orderData);
             } catch (e) {
                 console.warn('publicOrders sync failed:', e.message);
             }
             orderSuccess(docRef.id, trackToken);
-        } else {
-            const orders = JSON.parse(localStorage.getItem('orders')) || [];
-            const newId = Date.now();
-            orders.push({ id: newId, ...orderData });
-            localStorage.setItem('orders', JSON.stringify(orders));
-            const publicOrders = JSON.parse(localStorage.getItem('publicOrders') || '{}');
-            publicOrders[trackToken] = HomieAuth.buildPublicOrderPayload(newId, trackToken, orderData);
-            localStorage.setItem('publicOrders', JSON.stringify(publicOrders));
-            window.dispatchEvent(new CustomEvent('orderAdded', { detail: { orderId: newId } }));
-            orderSuccess(newId, trackToken);
-        }
-    } catch (err) {
-        alert('เกิดข้อผิดพลาด: ' + err.message);
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i data-lucide="check-circle" style="width:18px;height:18px;"></i> ยืนยันและชำระเงิน';
-        lucide.createIcons();
+        }).catch(err => alert('เกิดข้อผิดพลาด: ' + err.message));
+    } else {
+        const orders = JSON.parse(localStorage.getItem('orders')) || [];
+        const newId = Date.now();
+        orders.push({ id: newId, ...orderData });
+        localStorage.setItem('orders', JSON.stringify(orders));
+        const publicOrders = JSON.parse(localStorage.getItem('publicOrders') || '{}');
+        publicOrders[trackToken] = HomieAuth.buildPublicOrderPayload(newId, trackToken, orderData);
+        localStorage.setItem('publicOrders', JSON.stringify(publicOrders));
+        window.dispatchEvent(new CustomEvent('orderAdded', { detail: { orderId: newId } }));
+        orderSuccess(newId, trackToken);
     }
 };
 
