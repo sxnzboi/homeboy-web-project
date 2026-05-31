@@ -316,8 +316,10 @@
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
     
     <!-- Sound Effect -->
     <audio id="notification-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
@@ -327,7 +329,13 @@
         <button class="undo-btn" onclick="undoOrder()">ย้อนกลับ (Undo)</button>
     </div>
 
-    <script src="kitchen.js"></script>
+    <script>
+        HomieAuth.requireRole(['admin', 'kitchen']).then(function() {
+            var s = document.createElement('script');
+            s.src = 'kitchen.js';
+            document.body.appendChild(s);
+        });
+    </script>
     <script>lucide.createIcons();</script>
 </body>
 </html>

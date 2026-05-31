@@ -338,18 +338,7 @@
             display: none;
         }
         .btn-undo-cancel {
-            background: #ff6b00;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 8px 12px;
-            margin-top: 8px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-        .btn-undo-cancel:hover {
-            background: #ff8c42;
+            display: none;
         }
 
         /* Completed banner */
@@ -423,7 +412,6 @@
             <div class="cancelled-banner" id="cancelled-banner">
                 <i data-lucide="x-circle" style="color:white;width:20px;height:20px;vertical-align:text-bottom;"></i> ออเดอร์นี้ถูกยกเลิกแล้ว กรุณาติดต่อร้านเพื่อสอบถาม <br>
                 เบอร์โทร 0946911931 IG:homieboy.eat
-                <button class="btn-undo-cancel" id="undo-cancel-btn">ย้อนสถานะ</button>
             </div>
 
             <!-- Status Timeline -->
@@ -521,99 +509,88 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
     <script>
         lucide.createIcons();
 
-        // ---- Detect Firebase & Firestore ----
-        // db ถูกประกาศไว้แล้วใน firebase-config.js
         let useFirebase = false;
 
         try {
             if (typeof firebase !== 'undefined' && firebase.apps.length && firebaseConfig.apiKey.indexOf("AIza") === 0) {
                 useFirebase = true;
-                console.log("Tracking: Firebase connected and ready.");
             }
         } catch(e) {
             console.warn("Tracking: Firebase check failed, using fallback.", e);
         }
 
-        // ---- Read Order ID from URL ----
-        const params  = new URLSearchParams(window.location.search);
-        const orderId = params.get('id');
+        const params     = new URLSearchParams(window.location.search);
+        const trackToken = params.get('token');
+        const legacyId   = params.get('id');
 
-        const loadingEl   = document.getElementById('track-loading');
-        const errorEl     = document.getElementById('track-error');
-        const contentEl   = document.getElementById('track-content');
+        const loadingEl     = document.getElementById('track-loading');
+        const errorEl       = document.getElementById('track-error');
+        const contentEl     = document.getElementById('track-content');
         const realtimeBadge = document.getElementById('realtime-badge');
 
-        if (!orderId) {
-            showError("กรุณาระบุหมายเลขออเดอร์");
+        if (trackToken) {
+            loadByToken(trackToken);
+        } else if (legacyId && !useFirebase) {
+            loadOrderLocal(legacyId);
         } else {
-            loadOrder(orderId);
+            showError("ลิงก์ติดตามไม่ถูกต้อง กรุณาใช้ลิงก์จากหน้ายืนยันการสั่งซื้อ");
         }
 
-        function loadOrder(id) {
+        function loadByToken(token) {
             if (useFirebase && db) {
                 realtimeBadge.style.display = 'flex';
-                // Real-time listener from Firestore
-                db.collection('orders').doc(id).onSnapshot(doc => {
-                    if (!doc.exists) { 
-                        showError("ไม่พบข้อมูลออเดอร์ในระบบ"); 
-                        return; 
+                db.collection('publicOrders').doc(token).onSnapshot(doc => {
+                    if (!doc.exists) {
+                        showError("ไม่พบออเดอร์ กรุณาตรวจสอบลิงก์อีกครั้ง");
+                        return;
                     }
-                    renderOrder({ id: doc.id, ...doc.data() });
+                    renderOrder({ id: doc.data().orderId || token, ...doc.data() });
                 }, (err) => {
                     console.error("Firestore Error:", err);
                     showError("เกิดข้อผิดพลาดในการโหลดข้อมูล");
                 });
             } else {
-                // LocalStorage fallback
-                const fetchLocal = () => {
-                    const orders = JSON.parse(localStorage.getItem('orders')) || [];
-                    const order  = orders.find(o => String(o.id) === String(id));
-                    if (!order) { 
-                        showError("ไม่พบข้อมูลออเดอร์ในเครื่องนี้"); 
-                        return; 
+                const poll = () => {
+                    const publicOrders = JSON.parse(localStorage.getItem('publicOrders') || '{}');
+                    const order = publicOrders[token];
+                    if (!order) {
+                        showError("ไม่พบออเดอร์ในเครื่องนี้");
+                        return;
                     }
-                    renderOrder(order);
+                    renderOrder({ id: order.orderId || token, ...order });
                 };
-
-                fetchLocal();
-                // Poll every 4s for status changes if not using Firebase
-                setInterval(fetchLocal, 4000);
+                poll();
+                setInterval(poll, 4000);
             }
         }
 
-        // Undo cancel: set status back to pending
-        window.undoCancel = function(orderId) {
-            if (!confirm('ยืนยันการย้อนสถานะออเดอร์นี้กลับเป็นรอดำเนินการ?')) return;
-            if (useFirebase) {
-                db.collection('orders').doc(orderId).update({ status: 'รอดำเนินการ' })
-                    .catch(err => alert('Error: ' + err.message));
-            } else {
-                let allOrders = JSON.parse(localStorage.getItem('orders')) || [];
-                const idx = allOrders.findIndex(o => String(o.id) === String(orderId));
-                if (idx > -1) {
-                    allOrders[idx].status = 'รอดำเนินการ';
-                    localStorage.setItem('orders', JSON.stringify(allOrders));
+        function loadOrderLocal(id) {
+            const fetchLocal = () => {
+                const orders = JSON.parse(localStorage.getItem('orders') || []);
+                const order  = orders.find(o => String(o.id) === String(id));
+                if (!order) {
+                    showError("ไม่พบข้อมูลออเดอร์ในเครื่องนี้");
+                    return;
                 }
-            }
-            // Refresh view after undo
-            loadOrder(orderId);
-        };
+                renderOrder(order);
+            };
+            fetchLocal();
+            setInterval(fetchLocal, 4000);
+        }
 
         function renderOrder(order) {
             loadingEl.style.display   = 'none';
             errorEl.style.display     = 'none';
             contentEl.style.display   = 'block';
 
-            // Order ID badge (handle both Firebase IDs and Timestamps)
-            const idStr = String(order.id);
-            const shortId = idStr.length > 10 ? idStr.slice(-6).toUpperCase() : idStr;
+            const idStr = String(order.orderId || order.id || '');
+            const shortId = idStr.length > 10 ? idStr.slice(-6).toUpperCase() : idStr.toUpperCase();
             document.getElementById('display-order-id').textContent = `ออเดอร์ #${shortId}`;
             document.title = `ออเดอร์ #${shortId} | Homie Boy`;
-            
-            document.getElementById('undo-cancel-btn').onclick = () => undoCancel(order.id);
 
             updateTimeline(order.status);
 

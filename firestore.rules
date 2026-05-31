@@ -1,0 +1,97 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function staffDoc() {
+      return get(/databases/$(database)/documents/staff/$(request.auth.uid));
+    }
+
+    function staffRole() {
+      return staffDoc().data.role;
+    }
+
+    function isStaff() {
+      return isSignedIn()
+        && staffDoc().exists
+        && staffRole() in ['admin', 'kitchen', 'rider'];
+    }
+
+    function isAdmin() {
+      return isSignedIn() && staffDoc().exists && staffRole() == 'admin';
+    }
+
+    function isValidOrderCreate() {
+      let data = request.resource.data;
+      return data.keys().hasAll([
+          'customerName', 'phone', 'address', 'items',
+          'total', 'status', 'trackToken', 'orderType'
+        ])
+        && data.status == 'รอดำเนินการ'
+        && data.trackToken is string
+        && data.trackToken.size() >= 32
+        && data.total is number
+        && data.total > 0
+        && data.items is list
+        && data.customerName is string
+        && data.customerName.size() > 0
+        && data.phone is string
+        && data.phone.size() >= 9;
+    }
+
+    function isValidPublicOrderCreate() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['orderId', 'trackToken', 'status', 'total'])
+        && data.status == 'รอดำเนินการ'
+        && data.trackToken == trackToken
+        && data.orderId is string
+        && data.total is number;
+    }
+
+    function isValidStaffOrderCreate() {
+      let data = request.resource.data;
+      return isStaff()
+        && data.keys().hasAll(['items', 'total', 'status', 'orderType'])
+        && data.total is number
+        && data.items is list;
+    }
+
+    // Staff profiles — read own doc only; manage via Firebase Console
+    match /staff/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Legacy users collection — disabled
+    match /users/{docId} {
+      allow read, write: if false;
+    }
+
+    match /menu/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Full order data — staff only (PII, payment slips)
+    match /orders/{orderId} {
+      allow create: if isValidOrderCreate() || isValidStaffOrderCreate();
+      allow read, update, delete: if isStaff();
+    }
+
+    // Public tracking snapshot — readable only with secret token (doc id)
+    match /publicOrders/{trackToken} {
+      allow read: if true;
+      allow create: if isValidPublicOrderCreate();
+      allow update: if isStaff();
+      allow delete: if isAdmin();
+    }
+  }
+}

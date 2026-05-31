@@ -225,15 +225,82 @@
         input:checked + .slider { background-color: var(--primary); }
         input:checked + .slider:before { transform: translateX(24px); }
         
+        /* Mobile Admin Header */
+        .mobile-admin-header {
+            display: none;
+            background: white;
+            width: 100%;
+            padding: 15px 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 1000;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mobile-admin-hamburger {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text);
+            padding: 5px;
+        }
+        
         @media (max-width: 992px) {
-            .admin-sidebar { display: none; }
-            .admin-main { margin-left: 0; padding: 20px; }
+            body {
+                flex-direction: column;
+                padding-top: 70px;
+            }
+            .admin-sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+                top: 70px;
+                height: calc(100vh - 70px);
+                width: 280px;
+                box-shadow: 15px 0 35px rgba(0,0,0,0.15);
+                display: flex !important; /* Force display when toggle works */
+            }
+            .admin-sidebar.active {
+                transform: translateX(0);
+            }
+            .admin-main {
+                margin-left: 0 !important;
+                padding: 20px 15px !important;
+            }
+            .mobile-admin-header {
+                display: flex;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Mobile Admin Header -->
+    <div class="mobile-admin-header">
+        <a href="#" class="logo" style="display:flex; align-items:center; gap:8px; text-decoration:none; font-weight:800; color:var(--text);">
+            <img src="logohomieboy.png" alt="Logo" style="height:32px;">
+            Homie Boy
+        </a>
+        <button class="mobile-admin-hamburger" onclick="toggleAdminSidebar()">
+            <i data-lucide="menu" id="hamburger-icon" style="width:24px;height:24px;"></i>
+        </button>
+    </div>
+
+    <script>
+        window.toggleAdminSidebar = function() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+            const icon = document.getElementById('hamburger-icon');
+            if (sidebar.classList.contains('active')) {
+                icon.setAttribute('data-lucide', 'x');
+            } else {
+                icon.setAttribute('data-lucide', 'menu');
+            }
+            lucide.createIcons();
+        };
+    </script>
+
     <!-- Sidebar Navigation (Subtle) -->
-    <aside class="admin-sidebar">
+    <aside class="admin-sidebar" id="sidebar">
         <div class="sidebar-logo">
             <a href="index.html" class="logo" style="font-size: 1.4rem; display: flex; align-items: center; gap: 10px;">
                 <img src="logohomieboy.png" style="height: 35px; width: auto;">
@@ -431,8 +498,10 @@
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
 
     <!-- Order Details Modal -->
     <div class="modal" id="order-details-modal">
@@ -549,7 +618,14 @@
     <!-- Hidden Print Area -->
     <div id="print-area"></div>
 
-    <script src="admin.js"></script>
+    <script>
+        window.logout = function() { HomieAuth.logout(); };
+        HomieAuth.requireRole(['admin']).then(function() {
+            var s = document.createElement('script');
+            s.src = 'admin.js';
+            document.body.appendChild(s);
+        });
+    </script>
     <script>lucide.createIcons();</script>
 </body>
 </html>

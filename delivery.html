@@ -69,6 +69,71 @@
         }
         .status-success { background: #e8f5e9; color: #2e7d32; display: block; }
         .status-error { background: #ffebee; color: #c62828; display: block; }
+
+        /* Tab Styles */
+        .tabs-header {
+            display: flex;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 24px;
+            gap: 10px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px 6px;
+            text-align: center;
+            font-weight: 700;
+            color: #888;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            background: none;
+            border: none;
+            font-size: 0.92rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Accordion Style */
+        .accordion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f9f9f9;
+            padding: 12px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            border: 1px solid #eee;
+            font-weight: 600;
+            font-size: 0.88rem;
+            color: #555;
+            margin-bottom: 12px;
+            user-select: none;
+            transition: background 0.2s;
+        }
+        .accordion-header:hover { background: #f0f0f0; }
+        .accordion-body {
+            display: none;
+            padding: 20px 15px;
+            background: white;
+            border: 1px dashed #ddd;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .accordion-body.open {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -79,42 +144,61 @@
             <p style="color: #888;">ถ่ายรูปสินค้าเพื่อแจ้งลูกค้าว่าส่งแล้ว</p>
         </div>
 
-        <!-- Active Jobs Queue (Rider Dashboard) -->
-        <div style="margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px;">
-            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; color: var(--primary);">
-                <i data-lucide="list-todo"></i> คิวงานจัดส่งของคุณ
-            </h3>
-            <div id="active-jobs-list" style="display: flex; flex-direction: column; gap: 15px;">
-                <p style="text-align: center; color: #aaa; font-size: 0.85rem; padding: 15px;">กำลังโหลดงาน...</p>
-            </div>
-        </div>
-
-        <!-- Manual Submission Section -->
-        <div style="margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px;">
-            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; color: #555;">
-                <i data-lucide="search"></i> อัปเดตด้วยหมายเลขออเดอร์
-            </h3>
-            <div class="input-group">
-                <label>หมายเลขออเดอร์ (ระบุ 6 หลักสุดท้าย หรือ ID เต็ม)</label>
-                <input type="text" id="order-id" placeholder="ตัวอย่าง: ABC123" required>
-            </div>
-
-            <div class="photo-upload" onclick="document.getElementById('file-input').click()">
-                <div id="upload-placeholder">
-                    <i data-lucide="camera" style="width: 40px; height: 40px; color: #aaa; margin-bottom: 10px;"></i>
-                    <p style="color: #aaa; font-weight: 500;">ถ่ายรูป/แนบไฟล์รูป (เฉพาะเมื่อยืนยันจัดส่งเสร็จสิ้น)</p>
-                </div>
-                <img id="preview" class="photo-preview">
-                <input type="file" id="file-input" accept="image/*" capture="environment" style="display: none;">
-            </div>
-
-            <button class="btn btn-primary" id="btn-submit" onclick="submitDelivery()">
-                <span id="btn-text">บันทึกสถานะจัดส่ง</span>
+        <!-- Tab Navigation -->
+        <div class="tabs-header">
+            <button class="tab-btn active" id="tab-btn-jobs" onclick="switchTab('jobs')">
+                <i data-lucide="list-todo" style="width:16px;height:16px;"></i> งานปัจจุบัน
             </button>
-            <div id="status-message" class="status-badge"></div>
+            <button class="tab-btn" id="tab-btn-history" onclick="switchTab('history')">
+                <i data-lucide="history" style="width:16px;height:16px;"></i> ประวัติจัดส่ง
+            </button>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+        <!-- Tab 1: Active Jobs -->
+        <div class="tab-content active" id="tab-jobs">
+            <!-- Active Jobs Queue (Rider Dashboard) -->
+            <div style="margin-bottom: 20px;">
+                <div id="active-jobs-list" style="display: flex; flex-direction: column; gap: 15px;">
+                    <p style="text-align: center; color: #aaa; font-size: 0.85rem; padding: 15px;">กำลังโหลดงาน...</p>
+                </div>
+            </div>
+
+            <!-- Collapsible manual submission -->
+            <div class="accordion-header" onclick="toggleManualAccordion()">
+                <span><i data-lucide="search" style="width:14px;height:14px;vertical-align:text-bottom;margin-right:4px;"></i> ค้นหาออเดอร์ด้วยตัวเอง (Manual)</span>
+                <i data-lucide="chevron-down" id="accordion-chevron" style="width:16px;height:16px;transition: transform 0.2s;"></i>
+            </div>
+            
+            <div class="accordion-body" id="manual-accordion-body">
+                <div class="input-group">
+                    <label>หมายเลขออเดอร์ (ระบุ 6 หลักสุดท้าย หรือ ID เต็ม)</label>
+                    <input type="text" id="order-id" placeholder="ตัวอย่าง: ABC123">
+                </div>
+
+                <div class="photo-upload" onclick="document.getElementById('file-input').click()">
+                    <div id="upload-placeholder">
+                        <i data-lucide="camera" style="width: 40px; height: 40px; color: #aaa; margin-bottom: 10px;"></i>
+                        <p style="color: #aaa; font-weight: 500; font-size:0.85rem;">ถ่ายรูป/แนบไฟล์รูป (เฉพาะเมื่อยืนยันจัดส่งเสร็จสิ้น)</p>
+                    </div>
+                    <img id="preview" class="photo-preview">
+                    <input type="file" id="file-input" accept="image/*" capture="environment" style="display: none;">
+                </div>
+
+                <button class="btn btn-primary" id="btn-submit" onclick="submitDelivery()">
+                    <span id="btn-text">บันทึกสถานะจัดส่ง</span>
+                </button>
+                <div id="status-message" class="status-badge"></div>
+            </div>
+        </div>
+
+        <!-- Tab 2: History -->
+        <div class="tab-content" id="tab-history">
+            <div id="delivery-history-list" style="display: flex; flex-direction: column; gap: 15px;">
+                <p style="text-align: center; color: #aaa; font-size: 0.85rem; padding: 20px;">กำลังโหลดประวัติ...</p>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
             <a href="index.html" style="text-align: center; color: #888; text-decoration: none; font-size: 0.9rem;">
                 กลับหน้าหลัก
             </a>
@@ -122,33 +206,20 @@
                 ออกจากระบบ (Rider Logout)
             </button>
         </div>
-
-        <!-- History Section -->
-        <div style="margin-top: 40px; border-top: 2px solid #eee; padding-top: 20px;">
-            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
-                <i data-lucide="history" style="width: 20px;"></i> ประวัติการส่งของวันนี้
-            </h3>
-            <div id="delivery-history-list" style="display: flex; flex-direction: column; gap: 15px;">
-                <p style="text-align: center; color: #aaa; font-size: 0.85rem; padding: 20px;">กำลังโหลดประวัติ...</p>
-            </div>
-        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
     <script>
-        // Check Authentication
-        if (localStorage.getItem('riderSession') !== 'true') {
-            window.location.href = 'login.html';
-        }
+    (async function() {
+        await HomieAuth.requireRole(['admin', 'rider']);
 
         lucide.createIcons();
 
-        function logout() {
-            localStorage.removeItem('riderSession');
-            window.location.href = 'login.html';
-        }
+        window.logout = function() { HomieAuth.logout(); };
 
         const fileInput = document.getElementById('file-input');
         const preview = document.getElementById('preview');
@@ -238,7 +309,9 @@
                     const previewImg = document.getElementById('preview-' + docId);
                     previewImg.src = base64;
                     document.getElementById('preview-container-' + docId).style.display = 'block';
-                    document.getElementById('btn-complete-' + docId).disabled = false;
+                    const completeBtn = document.getElementById('btn-complete-' + docId);
+                    completeBtn.disabled = false;
+                    completeBtn.style.opacity = '1';
                 };
                 img.src = e.target.result;
             };
@@ -249,8 +322,7 @@
             if (!confirm('ยืนยันเริ่มจัดส่งออเดอร์นี้? (ระบบจะเปลี่ยนสถานะเป็น กำลังไปส่ง)')) return;
             try {
                 if (useFirebase) {
-                    await db.collection('orders').doc(docId).update({
-                        status: 'กำลังจัดส่ง',
+                    await HomieAuth.updateOrderStatus(docId, 'กำลังจัดส่ง', {
                         startedDeliveryAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 } else {
@@ -278,8 +350,7 @@
 
             try {
                 if (useFirebase) {
-                    await db.collection('orders').doc(docId).update({
-                        status: 'สำเร็จแล้ว',
+                    await HomieAuth.updateOrderStatus(docId, 'สำเร็จแล้ว', {
                         deliveryPhoto: photo,
                         deliveredAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
@@ -333,10 +404,8 @@
                 }
 
                 if (orderData.status === 'พร้อมเสิร์ฟ') {
-                    // Update status to "กำลังจัดส่ง"
                     if (useFirebase) {
-                        await db.collection('orders').doc(actualId).update({
-                            status: 'กำลังจัดส่ง',
+                        await HomieAuth.updateOrderStatus(actualId, 'กำลังจัดส่ง', {
                             startedDeliveryAt: firebase.firestore.FieldValue.serverTimestamp()
                         });
                     } else {
@@ -369,8 +438,7 @@
 
                     // Update order in Firestore to completed
                     if (useFirebase) {
-                        await db.collection('orders').doc(actualId).update({
-                            status: 'สำเร็จแล้ว',
+                        await HomieAuth.updateOrderStatus(actualId, 'สำเร็จแล้ว', {
                             deliveryPhoto: base64Image,
                             deliveredAt: firebase.firestore.FieldValue.serverTimestamp()
                         });
@@ -384,91 +452,139 @@
                             localStorage.setItem('orders', JSON.stringify(allOrders));
                         }
                     }
-
-                    statusMsg.innerHTML = '<i data-lucide="check-circle" style="width:16px;height:16px;vertical-align:text-bottom;"></i> จัดส่งเรียบร้อย!';
-                    lucide.createIcons();
-                    statusMsg.classList.add('status-success');
-                    btnText.textContent = 'จัดส่งเสร็จสิ้น';
-                    
-                    // Clear form
-                    document.getElementById('order-id').value = '';
-                    base64Image = null;
-                    preview.style.display = 'none';
-                    placeholder.style.display = 'block';
-                    document.querySelector('.photo-upload').classList.remove('has-image');
-                } else if (orderData.status === 'รอดำเนินการ' || orderData.status === 'กำลังปรุง') {
-                    throw new Error('ออเดอร์นี้กำลังปรุงอยู่ในครัว ยังไม่พร้อมส่ง');
-                } else {
-                    throw new Error('ออเดอร์นี้จัดส่งเสร็จสิ้นแล้ว');
-                }
-
-                btnSubmit.disabled = false;
-
-            } catch (err) {
-                console.error(err);
-                statusMsg.innerHTML = '<i data-lucide="alert-triangle" style="width:16px;height:16px;vertical-align:text-bottom;"></i> ผิดพลาด: ' + err.message;
+                statusMsg.innerHTML = '<i data-lucide="check-circle" style="width:16px;height:16px;vertical-align:text-bottom;"></i> จัดส่งเรียบร้อย!';
                 lucide.createIcons();
-                statusMsg.classList.add('status-error');
-                btnSubmit.disabled = false;
-                btnText.textContent = 'บันทึกสถานะจัดส่ง';
+                statusMsg.classList.add('status-success');
+                btnText.textContent = 'จัดส่งเสร็จสิ้น';
+                
+                // Clear form
+                document.getElementById('order-id').value = '';
+                base64Image = null;
+                preview.style.display = 'none';
+                placeholder.style.display = 'block';
+                document.querySelector('.photo-upload').classList.remove('has-image');
+            } else if (orderData.status === 'รอดำเนินการ' || orderData.status === 'กำลังปรุง') {
+                throw new Error('ออเดอร์นี้กำลังปรุงอยู่ในครัว ยังไม่พร้อมส่ง');
+            } else {
+                throw new Error('ออเดอร์นี้จัดส่งเสร็จสิ้นแล้ว');
             }
+
+            btnSubmit.disabled = false;
+
+        } catch (err) {
+            console.error(err);
+            statusMsg.innerHTML = '<i data-lucide="alert-triangle" style="width:16px;height:16px;vertical-align:text-bottom;"></i> ผิดพลาด: ' + err.message;
+            lucide.createIcons();
+            statusMsg.classList.add('status-error');
+            btnSubmit.disabled = false;
+            btnText.textContent = 'บันทึกสถานะจัดส่ง';
+        }
+    }
+
+    // --- Tab & Accordion Helpers ---
+    window.switchTab = function(tab) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        if (tab === 'jobs') {
+            document.getElementById('tab-btn-jobs').classList.add('active');
+            document.getElementById('tab-jobs').classList.add('active');
+        } else {
+            document.getElementById('tab-btn-history').classList.add('active');
+            document.getElementById('tab-history').classList.add('active');
+        }
+    };
+
+    window.toggleManualAccordion = function() {
+        const body = document.getElementById('manual-accordion-body');
+        const chevron = document.getElementById('accordion-chevron');
+        body.classList.toggle('open');
+        if (body.classList.contains('open')) {
+            chevron.style.transform = 'rotate(180deg)';
+        } else {
+            chevron.style.transform = 'rotate(0deg)';
+        }
+    };
+
+    // --- Active Jobs Rendering ---
+    function renderActiveJobs(jobs) {
+        const list = document.getElementById('active-jobs-list');
+        if (jobs.length === 0) {
+            list.innerHTML = '<p style="text-align: center; color: #aaa; font-size: 0.85rem; padding: 15px;">ไม่มีงานจัดส่งในขณะนี้</p>';
+            return;
         }
 
-        // --- Active Jobs Rendering ---
-        function renderActiveJobs(jobs) {
-            const list = document.getElementById('active-jobs-list');
-            if (jobs.length === 0) {
-                list.innerHTML = '<p style="text-align: center; color: #aaa; font-size: 0.85rem; padding: 15px;">ไม่มีงานจัดส่งในขณะนี้</p>';
-                return;
+        list.innerHTML = jobs.map(order => {
+            const idStr = String(order.id);
+            const shortId = idStr.length > 10 ? idStr.slice(-6).toUpperCase() : idStr;
+
+            // Format order time
+            let timeStr = '';
+            if (order.timestamp) {
+                const d = order.timestamp.toDate ? order.timestamp.toDate() : new Date(order.timestamp);
+                timeStr = d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
             }
 
-            list.innerHTML = jobs.map(order => {
-                const idStr = String(order.id);
-                const shortId = idStr.length > 10 ? idStr.slice(-6).toUpperCase() : idStr;
-                
-                let actionHtml = '';
-                if (order.status === 'พร้อมเสิร์ฟ') {
-                    actionHtml = `
-                        <button class="btn btn-primary" style="background:#ff6b00; border-color:#ff6b00; width:100%; margin-top:10px; padding:10px; font-weight:700; border-radius:10px;" onclick="startDelivery('${order.id}')">
-                            <i data-lucide="bike" style="width:16px;height:16px;vertical-align:text-bottom;margin-right:5px;"></i> เริ่มจัดส่ง (กำลังไปส่ง)
+            // Status badge color
+            const isReady = order.status === 'พร้อมเสิร์ฟ';
+            const statusColor = isReady ? '#ff6b00' : '#3b82f6';
+            const statusLabel = isReady ? 'พร้อมเสิร์ฟ' : 'กำลังจัดส่ง';
+
+            // Action buttons
+            let actionHtml = '';
+            if (isReady) {
+                actionHtml = `
+                    <button class="btn btn-primary" style="background:#ff6b00; border-color:#ff6b00; width:100%; margin-top:12px; padding:12px; font-weight:700; border-radius:10px; font-size:0.95rem;" onclick="startDelivery('${order.id}')">
+                        <i data-lucide="bike" style="width:16px;height:16px;vertical-align:text-bottom;margin-right:6px;"></i> เริ่มจัดส่ง (กำลังไปส่ง)
+                    </button>
+                `;
+            } else {
+                // กำลังจัดส่ง — photo upload to confirm completion
+                actionHtml = `
+                    <div style="margin-top:12px; border: 1.5px dashed #3b82f6; padding:14px; border-radius:12px; background:#f0f7ff;">
+                        <p style="font-size:0.78rem; color:#3b82f6; font-weight:700; margin-bottom:8px;">📷 ถ่ายรูปเพื่อยืนยันจัดส่งเสร็จสิ้น:</p>
+                        <input type="file" id="photo-${order.id}" accept="image/*" capture="environment" style="width:100%; font-size:0.8rem; margin-bottom:8px;" onchange="handleJobPhoto(event, '${order.id}')">
+                        <div id="preview-container-${order.id}" style="display:none; margin-bottom:8px;">
+                            <img id="preview-${order.id}" style="width:100%; max-height:150px; object-fit:cover; border-radius:8px;">
+                        </div>
+                        <button class="btn" id="btn-complete-${order.id}" style="background:#22c55e; color:white; border:none; width:100%; padding:12px; font-weight:700; border-radius:10px; font-size:0.95rem; cursor:pointer; opacity:0.5;" onclick="completeDelivery('${order.id}')" disabled>
+                            <i data-lucide="check-circle" style="width:16px;height:16px;vertical-align:text-bottom;margin-right:4px;"></i> ยืนยันจัดส่งเสร็จสิ้น
                         </button>
-                    `;
-                } else if (order.status === 'กำลังจัดส่ง') {
-                    actionHtml = `
-                        <div style="margin-top:10px; border: 1px dashed #ff6b00; padding:12px; border-radius:10px; background:#fff8f5; text-align:left;">
-                            <p style="font-size:0.75rem; color:#ff6b00; font-weight:700; margin-bottom:5px;">ถ่ายรูปเพื่อยืนยันจัดส่งเสร็จสิ้น:</p>
-                            <input type="file" id="photo-${order.id}" accept="image/*" capture="environment" style="width:100%; font-size:0.8rem; margin-bottom:8px;" onchange="handleJobPhoto(event, '${order.id}')">
-                            <div id="preview-container-${order.id}" style="display:none; margin-bottom:8px;">
-                                <img id="preview-${order.id}" style="width:100%; max-height:150px; object-fit:cover; border-radius:8px;">
-                            </div>
-                            <button class="btn btn-primary" id="btn-complete-${order.id}" style="background:#22c55e; border-color:#22c55e; width:100%; padding:10px; font-weight:700; border-radius:10px;" onclick="completeDelivery('${order.id}')" disabled>
-                                ยืนยันจัดส่งเสร็จสิ้น
-                            </button>
-                        </div>
-                    `;
-                }
-
-                const statusBadge = order.status === 'พร้อมเสิร์ฟ' 
-                    ? `<span style="background:rgba(255,107,0,0.1); color:#ff6b00; padding:4px 10px; border-radius:8px; font-size:0.75rem; font-weight:800;">พร้อมส่ง</span>`
-                    : `<span style="background:rgba(59,130,246,0.1); color:#3b82f6; padding:4px 10px; border-radius:8px; font-size:0.75rem; font-weight:800;">กำลังไปส่ง</span>`;
-
-                return `
-                    <div style="background: #f9f9f9; border-radius: 18px; padding: 18px; border: 1px solid #eee; box-shadow: 0 4px 12px rgba(0,0,0,0.02); text-align: left;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center;">
-                            <span style="background: #eef2f6; color: #555; padding: 4px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.5px;">#${shortId}</span>
-                            ${statusBadge}
-                        </div>
-                        <p style="font-weight: 800; font-size: 1rem; margin-bottom: 6px; color: #333;">${order.customerName || 'ลูกค้า'}</p>
-                        <p style="font-size: 0.85rem; color: #ff6b00; margin-bottom: 10px; font-weight: 700;"><i data-lucide="phone" style="width:14px;height:14px;vertical-align:text-bottom;"></i> ${order.phone || '-'}</p>
-                        <div style="background: white; padding: 12px; border-radius: 12px; border: 1px solid #f0f0f0; margin-bottom: 8px;">
-                            <p style="font-size: 0.8rem; color: #777; line-height: 1.5;"><i data-lucide="map-pin" style="width:14px;height:14px;vertical-align:text-bottom;"></i> ${order.address || '-'}</p>
-                        </div>
-                        ${actionHtml}
                     </div>
                 `;
-            }).join('');
-            lucide.createIcons();
-        }
+            }
+
+            // Items list
+            const itemsHtml = (order.items || []).map(item =>
+                `<span style="font-size:0.82rem; background:#f3f3f3; border-radius:6px; padding:3px 8px; display:inline-block; margin:2px 2px 2px 0;">${item.name} x${item.quantity || 1}</span>`
+            ).join('');
+
+            return `
+                <div style="background:white; border-radius:18px; padding:18px; border:1px solid #eee; box-shadow:0 4px 15px rgba(0,0,0,0.05); border-left:4px solid ${statusColor};">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <span style="background:${statusColor}22; color:${statusColor}; padding:4px 12px; border-radius:8px; font-size:0.78rem; font-weight:800; letter-spacing:0.5px;">#${shortId}</span>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="background:${statusColor}22; color:${statusColor}; padding:3px 10px; border-radius:20px; font-size:0.75rem; font-weight:700;">${statusLabel}</span>
+                            ${timeStr ? `<span style="font-size:0.72rem; color:#aaa;">${timeStr}</span>` : ''}
+                        </div>
+                    </div>
+                    <p style="font-weight:800; font-size:1.05rem; margin-bottom:4px; color:#222;">${order.customerName || 'ลูกค้า'}</p>
+                    <p style="font-size:0.85rem; color:#ff6b00; margin-bottom:8px; font-weight:700; display:flex; align-items:center; gap:4px;">
+                        <i data-lucide="phone" style="width:14px;height:14px;"></i> ${order.phone || '-'}
+                    </p>
+                    <div style="background:#f9f9f9; padding:10px 12px; border-radius:10px; margin-bottom:10px;">
+                        <p style="font-size:0.8rem; color:#666; line-height:1.5; display:flex; align-items:flex-start; gap:5px;">
+                            <i data-lucide="map-pin" style="width:14px;height:14px;margin-top:2px;flex-shrink:0;color:#ff6b00;"></i>
+                            <span>${order.address || '-'}</span>
+                        </p>
+                    </div>
+                    ${itemsHtml ? `<div style="margin-bottom:6px;">${itemsHtml}</div>` : ''}
+                    <div style="font-weight:700; color:#ff6b00; font-size:0.9rem; margin-bottom:4px;">฿${Number(order.total || 0).toLocaleString()}</div>
+                    ${actionHtml}
+                </div>
+            `;
+        }).join('');
+        lucide.createIcons();
+    }
 
         // --- Active History Rendering ---
         function renderHistory(completedOrders) {
@@ -574,6 +690,7 @@
         // Initialize active jobs and history on load
         loadActiveJobs();
         loadHistory();
+    })();
     </script>
 </body>
 </html>

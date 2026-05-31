@@ -129,9 +129,12 @@ function renderMenu(filter = 'all') {
 function filterCategory(cat) {
     document.querySelectorAll('.cat-btn').forEach(btn => {
         btn.classList.remove('active');
-        if(btn.innerText.toLowerCase().includes(cat === 'food' ? 'อาหาร' : cat === 'drink' ? 'เครื่องดื่ม' : cat === 'dessert' ? 'ของหวาน' : 'ทั้งหมด')) {
-            btn.classList.add('active');
-        }
+        const text = btn.innerText.toLowerCase();
+        if (cat === 'all' && text.includes('ทั้งหมด')) btn.classList.add('active');
+        else if (cat === 'food' && text.includes('อาหาร')) btn.classList.add('active');
+        else if (cat === 'drink' && text.includes('เครื่องดื่ม')) btn.classList.add('active');
+        else if (cat === 'dessert' && text.includes('ของหวาน')) btn.classList.add('active');
+        else if (cat === 'set' && text.includes('เซ็ต')) btn.classList.add('active');
     });
     renderMenu(cat);
 }
@@ -195,14 +198,28 @@ function openCustomModal(id) {
     customModal.classList.add('active');
 }
 
+// Add item with quantity merging
+function addItemToCart(itemToAdd) {
+    const existing = cart.find(i => 
+        i.id === itemToAdd.id && 
+        JSON.stringify(i.customOptions) === JSON.stringify(itemToAdd.customOptions)
+    );
+    if (existing) {
+        existing.quantity = (existing.quantity || 1) + 1;
+    } else {
+        itemToAdd.quantity = 1;
+        cart.push(itemToAdd);
+    }
+    updateCart();
+}
+
 function addToCartDirectly(product) {
-    cart.push({
+    addItemToCart({
         ...product,
         cartItemId: Date.now(),
         finalPrice: product.price,
         customOptions: { note: '', isDirect: true }
     });
-    updateCart();
 }
 
 document.getElementById('close-custom').onclick = () => customModal.classList.remove('active');
@@ -234,14 +251,13 @@ document.getElementById('confirm-add').onclick = () => {
         options.dynamic = selectedOptions.map(o => o.name);
     }
     
-    cart.push({
+    addItemToCart({
         ...pendingProduct,
         cartItemId: Date.now(), 
         finalPrice: price,
         customOptions: options
     });
 
-    updateCart();
     customModal.classList.remove('active');
     resetCustomOptions();
 };
@@ -262,6 +278,16 @@ function resetCustomOptions() {
     if (cheese) cheese.checked = false;
 }
 
+window.changeQty = function(cartItemId, amount) {
+    const idx = cart.findIndex(i => i.cartItemId === cartItemId);
+    if (idx > -1) {
+        cart[idx].quantity = (cart[idx].quantity || 1) + amount;
+        if (cart[idx].quantity <= 0) {
+            cart.splice(idx, 1);
+        }
+        updateCart();
+    }
+};
 
 // --- Cart Logic ---
 function updateCart() {
@@ -270,11 +296,12 @@ function updateCart() {
     const floatingCount = document.getElementById('floating-count');
     const floatingTotal = document.getElementById('floating-total');
     
-    const total = cart.reduce((sum, item) => sum + item.finalPrice, 0);
+    const total = cart.reduce((sum, item) => sum + (item.finalPrice * (item.quantity || 1)), 0);
+    const count = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
     
     if (cart.length > 0) {
         floatingBtn.classList.add('active');
-        if(floatingCount) floatingCount.innerText = cart.length;
+        if(floatingCount) floatingCount.innerText = count;
         if(floatingTotal) floatingTotal.innerText = `฿${total.toLocaleString()}`;
     } else {
         if(floatingBtn) floatingBtn.classList.remove('active');
@@ -284,22 +311,29 @@ function updateCart() {
         let customParts = [];
         
         if (item.customOptions.dynamic && item.customOptions.dynamic.length > 0) {
-            customParts.push(item.customOptions.dynamic.map(d => `${d.name}${d.price > 0 ? ` (+฿${d.price})` : ''}`).join(', '));
+            customParts.push(item.customOptions.dynamic.map(d => `${d}`).join(', '));
         }
         
         if (item.customOptions.note) customParts.push(item.customOptions.note);
 
         const customText = customParts.join(', ');
+        const qty = item.quantity || 1;
+        const lineTotal = item.finalPrice * qty;
 
         return `
-        <div class="cart-item">
-            <img src="${item.image}" alt="${item.name}">
-            <div class="cart-item-info">
-                <h4>${item.name}</h4>
-                <p style="font-size: 0.7rem; color: #888;">${customText || 'ปกติ'}</p>
-                <span>฿${item.finalPrice}</span>
+        <div class="cart-item" style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+            <img src="${item.image}" alt="${item.name}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;">
+            <div class="cart-item-info" style="flex: 1;">
+                <h4 style="font-size: 0.9rem; margin-bottom: 2px;">${item.name}</h4>
+                <p style="font-size: 0.7rem; color: #888; margin-bottom: 4px;">${customText || 'ปกติ'}</p>
+                <span style="font-weight: 700; color: var(--primary); font-size: 0.88rem;">฿${lineTotal.toLocaleString()}</span>
             </div>
-            <div style="margin-left: auto; cursor: pointer;" onclick="removeFromCart(${item.cartItemId})">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <button class="btn-qty" onclick="changeQty(${item.cartItemId}, -1)" style="width: 24px; height: 24px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; font-weight: bold; font-size: 0.85rem;">-</button>
+                <span style="font-weight: bold; min-width: 16px; text-align: center; font-size: 0.9rem;">${qty}</span>
+                <button class="btn-qty" onclick="changeQty(${item.cartItemId}, 1)" style="width: 24px; height: 24px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; font-weight: bold; font-size: 0.85rem;">+</button>
+            </div>
+            <div style="cursor: pointer; padding: 5px;" onclick="removeFromCart(${item.cartItemId})">
                 <i data-lucide="trash-2" style="width: 18px; color: #ff6b00;"></i>
             </div>
         </div>
@@ -307,18 +341,15 @@ function updateCart() {
     }).join('');
 
     lucide.createIcons();
-    cartTotalElement.innerText = `฿${total}`;
-    cartCountElement.innerText = cart.length;
+    cartTotalElement.innerText = `฿${total.toLocaleString()}`;
+    cartCountElement.innerText = count;
 }
 
 // Click for Floating Checkout
 const mobileCheckBtn = document.getElementById('mobile-checkout-btn');
 if (mobileCheckBtn) {
     mobileCheckBtn.onclick = () => {
-        cartSidebar.classList.remove('active');
-        setTimeout(() => {
-            checkoutModal.classList.add('active');
-        }, 300);
+        openCart();
     };
 }
 
@@ -333,6 +364,11 @@ document.getElementById('close-cart').onclick = () => cartSidebar.classList.remo
 
 document.getElementById('checkout-trigger').onclick = () => {
     if(cart.length === 0) return alert('กรุณาเลือกเมนูก่อนชำระเงิน');
+    
+    // Set total transfer display in checkout modal
+    const total = cart.reduce((sum, item) => sum + (item.finalPrice * (item.quantity || 1)), 0);
+    document.getElementById('checkout-total-display').innerText = `฿${total.toLocaleString()}`;
+
     cartSidebar.classList.remove('active'); // ปิดตะกร้าก่อน
     setTimeout(() => {
         checkoutModal.classList.add('active'); // แล้วเปิดหน้าชำระเงิน
@@ -342,16 +378,21 @@ document.getElementById('checkout-trigger').onclick = () => {
 document.getElementById('close-checkout').onclick = () => checkoutModal.classList.remove('active');
 
 document.getElementById('submit-order').onclick = () => {
+    const total = cart.reduce((sum, item) => sum + (item.finalPrice * (item.quantity || 1)), 0);
+    const trackToken = (typeof HomieAuth !== 'undefined')
+        ? HomieAuth.generateTrackToken()
+        : Date.now().toString(36) + Math.random().toString(36).slice(2);
     const orderData = {
         customerName: document.getElementById('cust-name').value.trim(),
         phone: document.getElementById('cust-phone').value.trim(),
         address: document.getElementById('cust-address').value.trim(),
         slipImage: slipBase64 || null,
         items: cart,
-        total: cart.reduce((sum, item) => sum + item.finalPrice, 0),
+        total: total,
         status: 'รอดำเนินการ',
         orderType: 'delivery',
         paymentMethod: 'promptpay',
+        trackToken: trackToken,
         timestamp: useFirebase ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()
     };
 
@@ -363,21 +404,28 @@ document.getElementById('submit-order').onclick = () => {
     }
 
     if (useFirebase) {
-        db.collection('orders').add(orderData).then((docRef) => {
-            orderSuccess(docRef.id);
+        db.collection('orders').add(orderData).then(async (docRef) => {
+            try {
+                await HomieAuth.createPublicOrder(docRef.id, trackToken, orderData);
+            } catch (e) {
+                console.warn('publicOrders sync failed:', e.message);
+            }
+            orderSuccess(docRef.id, trackToken);
         }).catch(err => alert('เกิดข้อผิดพลาด: ' + err.message));
     } else {
         const orders = JSON.parse(localStorage.getItem('orders')) || [];
         const newId = Date.now();
         orders.push({ id: newId, ...orderData });
         localStorage.setItem('orders', JSON.stringify(orders));
-        // Notify other pages (e.g., kitchen) of new order
+        const publicOrders = JSON.parse(localStorage.getItem('publicOrders') || '{}');
+        publicOrders[trackToken] = HomieAuth.buildPublicOrderPayload(newId, trackToken, orderData);
+        localStorage.setItem('publicOrders', JSON.stringify(publicOrders));
         window.dispatchEvent(new CustomEvent('orderAdded', { detail: { orderId: newId } }));
-        orderSuccess(newId);
+        orderSuccess(newId, trackToken);
     }
 };
 
-function orderSuccess(orderId) {
+function orderSuccess(orderId, trackToken) {
     cart = [];
     updateCart();
     checkoutModal.classList.remove('active');
@@ -393,9 +441,9 @@ function orderSuccess(orderId) {
     const refNum = orderId ? String(orderId).slice(-6).toUpperCase() : Math.random().toString(36).slice(-6).toUpperCase();
     document.getElementById('success-order-ref').textContent = `หมายเลขออเดอร์: #${refNum}`;
 
-    // Generate Tracking URL
+    // Generate Tracking URL (token-based — do not share order doc id)
     const baseUrl = window.location.origin + window.location.pathname.replace('index.html', '');
-    const trackUrl = `${baseUrl}track.html?id=${orderId}`;
+    const trackUrl = `${baseUrl}track.html?token=${trackToken}`;
     
     const trackInput = document.getElementById('track-url-input');
     const trackBtn = document.getElementById('track-order-btn');

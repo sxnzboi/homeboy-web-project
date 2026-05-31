@@ -199,16 +199,31 @@ function renderKDS() {
                    </button>
                </div>`;
 
+        let customerInfoHtml = '';
+        if (order.customerName || order.phone || order.address) {
+            customerInfoHtml = `
+                <div style="background: rgba(255,107,0,0.05); border: 1px solid rgba(255,107,0,0.15); border-radius: 12px; margin: 10px 15px 0; padding: 12px; font-size: 0.9rem; text-align: left;">
+                    <p style="font-weight: 700; color: #ff6b00; margin-bottom: 4px;"><i data-lucide="user" style="width:14px;height:14px;vertical-align:text-bottom;margin-right:4px;"></i>${order.customerName || 'ลูกค้า'}</p>
+                    <p style="font-weight: 600; color: #ddd; margin-bottom: 6px;"><i data-lucide="phone" style="width:14px;height:14px;vertical-align:text-bottom;margin-right:4px;"></i>${order.phone || '-'}</p>
+                    ${order.address ? `<p style="color: #aaa; font-size: 0.82rem; line-height:1.4; border-top:1px dashed #333; padding-top:6px; white-space: normal;"><i data-lucide="map-pin" style="width:14px;height:14px;vertical-align:text-bottom;margin-right:4px;"></i>${order.address}</p>` : ''}
+                </div>
+            `;
+        }
+
+        const idStr = String(order.id);
+        const displayId = idStr.length > 10 ? idStr.slice(-6).toUpperCase() : idStr;
+
         return `
             <div class="${cardClass}">
                 <div class="order-header">
-                    <span class="order-id">#${String(order.id).slice(-4).toUpperCase()}</span>
+                    <span class="order-id">#${displayId}</span>
                     <div style="display:flex;align-items:center;gap:8px;">
                         ${statusBadge}
                         <span class="order-type ${typeClass}">${typeText}</span>
                     </div>
                 </div>
                 <div class="order-time">เข้ามาเมื่อ: ${timeStr} <span style="margin-left: 10px; color: ${isLate ? '#ef4444' : '#aaa'}; font-weight: ${isLate ? 'bold' : 'normal'}">${isLate ? '(ช้าเกินไป!)' : ''}</span></div>
+                ${customerInfoHtml}
                 <div class="order-items">
                     ${itemsHtml}
                 </div>
@@ -266,7 +281,7 @@ function fetchPendingOrders() {
 // เชฟกด "เริ่มปรุงอาหาร" → เปลี่ยนสถานะเป็น กำลังปรุง
 window.markAsCooking = function(orderId) {
     if (useFirebase) {
-        db.collection('orders').doc(orderId).update({ status: 'กำลังปรุง' })
+        HomieAuth.updateOrderStatus(orderId, 'กำลังปรุง')
           .catch(err => alert("เกิดข้อผิดพลาด: " + err.message));
     } else {
         let allOrders = JSON.parse(localStorage.getItem('orders')) || [];
@@ -281,10 +296,10 @@ window.markAsCooking = function(orderId) {
 
 // เชฟยกเลิกออเดอร์ (ingredients หมด / ปัญหา)
 window.cancelOrder = function(orderId) {
-    if (!confirm(`ยืนยันยกเลิกออเดอร์ #${String(orderId).slice(-4).toUpperCase()}?\nลูกค้าจะเห็นสถานะยกเลิกทันที`)) return;
+    if (!confirm(`ยืนยันยกเลิกออเดอร์ #${String(orderId).slice(-6).toUpperCase()}?\nลูกค้าจะเห็นสถานะยกเลิกทันที`)) return;
 
     if (useFirebase) {
-        db.collection('orders').doc(orderId).update({ status: 'ยกเลิก' })
+        HomieAuth.updateOrderStatus(orderId, 'ยกเลิก')
           .catch(err => alert("เกิดข้อผิดพลาด: " + err.message));
     } else {
         let allOrders = JSON.parse(localStorage.getItem('orders')) || [];
@@ -308,7 +323,7 @@ window.markAsReady = function(orderId) {
         
         // Show undo toast
         const toast = document.getElementById('undo-toast');
-        document.getElementById('undo-text').innerText = `ออเดอร์ #${String(orderId).slice(-4).toUpperCase()} ทำเสร็จแล้ว`;
+        document.getElementById('undo-text').innerText = `ออเดอร์ #${String(orderId).slice(-6).toUpperCase()} ทำเสร็จแล้ว`;
         toast.classList.add('show');
         
         if (undoTimeout) clearTimeout(undoTimeout);
@@ -319,7 +334,7 @@ window.markAsReady = function(orderId) {
     }
 
     if (useFirebase) {
-        db.collection('orders').doc(orderId).update({ status: 'พร้อมเสิร์ฟ' })
+        HomieAuth.updateOrderStatus(orderId, 'พร้อมเสิร์ฟ')
           .catch(err => alert("เกิดข้อผิดพลาด: " + err.message));
     } else {
         let allOrders = JSON.parse(localStorage.getItem('orders')) || [];
@@ -341,7 +356,7 @@ window.undoOrder = function() {
     const oldStatus = lastCompletedOrder.status || 'กำลังปรุง';
 
     if (useFirebase) {
-        db.collection('orders').doc(orderId).update({ status: oldStatus })
+        HomieAuth.updateOrderStatus(orderId, oldStatus)
           .catch(err => alert("เกิดข้อผิดพลาดในการย้อนกลับ: " + err.message));
     } else {
         let allOrders = JSON.parse(localStorage.getItem('orders')) || [];

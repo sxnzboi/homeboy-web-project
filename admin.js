@@ -1,12 +1,3 @@
-// --- Security Check ---
-if (localStorage.getItem('adminSession') !== 'true') {
-    console.warn("No session found, redirecting...");
-    window.location.href = 'login.html';
-}
-
-// Global Actions
-window.logout = () => { localStorage.removeItem('adminSession'); window.location.href = 'login.html'; };
-
 let useFirebase = false;
 let currentOrders = [];
 let currentProducts = [];
@@ -142,7 +133,9 @@ function getStatusBadge(status) {
         'กำลังปรุง':   { bg: '#eff6ff', color: '#3b82f6', border: '#93c5fd', icon: 'flame' },
         'กำลังเตรียม': { bg: '#eff6ff', color: '#3b82f6', border: '#93c5fd', icon: 'flame' },
         'พร้อมเสิร์ฟ': { bg: '#f0fdf4', color: '#22c55e', border: '#86efac', icon: 'check-circle' },
-        'สำเร็จสิ้น': { bg: '#f0fdf4', color: '#22c55e', border: '#86efac', icon: 'check-circle' },
+        'กำลังจัดส่ง': { bg: '#eff6ff', color: '#6366f1', border: '#a5b4fc', icon: 'bike' },
+        'สำเร็จแล้ว':  { bg: '#f0fdf4', color: '#16a34a', border: '#86efac', icon: 'package-check' },
+        'สำเร็จสิ้น':  { bg: '#f0fdf4', color: '#22c55e', border: '#86efac', icon: 'check-circle' },
         'เสร็จสิ้น':   { bg: '#f0fdf4', color: '#22c55e', border: '#86efac', icon: 'check-circle' },
         'ยกเลิก':      { bg: '#fef2f2', color: '#ef4444', border: '#fca5a5', icon: 'x-circle' },
     };
@@ -190,7 +183,7 @@ orderListContainer.addEventListener('click', (e) => {
         if (btn.disabled) return;
         if(!confirm('ยืนยันยกเลิกออเดอร์นี้?\nลูกค้าจะเห็นสถานะยกเลิกทันที')) return;
         if(useFirebase) {
-            db.collection('orders').doc(id).update({ status: 'ยกเลิก' })
+            HomieAuth.updateOrderStatus(id, 'ยกเลิก')
                 .then(() => showToast('<i data-lucide="x-circle" style="width:20px;height:20px;vertical-align:text-bottom;"></i> ยกเลิกออเดอร์แล้ว', 'อัปเดตสถานะเป็นยกเลิกเรียบร้อย', 'success'))
                 .catch(err => showToast('เกิดข้อผิดพลาด', err.message, 'error'));
         } else {

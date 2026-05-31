@@ -50,6 +50,9 @@
         <p class="closed-desc">ขณะนี้อยู่นอกเวลาทำการ หรือร้านกำลังปิดปรับปรุงชั่วคราว กรุณากลับมาสั่งใหม่อีกครั้งในเวลาเปิดทำการครับ<br>
             ร้านเปิดเวลา<br> วันเสาร์ - วันอาทิตย์ 12:00 PM - 10:00PM<br>
             วันจันทร์ -  วันศุกร์ 5:00PM - 10:00PM<br>
+            <span style="display:block; margin-top: 15px; font-weight: 600; color: #555;">ติดต่อสอบถามเพิ่มเติม:</span>
+            เบอร์โทรศัพท์: <a href="tel:0946911931" style="color: var(--primary); text-decoration: none; font-weight: 700;">094-691-1931</a><br>
+            LINE / IG: <span style="color: var(--primary); font-weight: 700;">homieboy.eat</span>
         </p>
         <p style="margin-top: 20px; font-weight: 600; color: var(--primary);">Homie Boy | ขอบคุณครับ</p>
     </div>
@@ -178,6 +181,10 @@
                     <i data-lucide="qr-code" style="width:20px;height:20px;color:var(--primary);"></i>
                     <span>ชำระเงินผ่าน PromptPay</span>
                 </div>
+                <div style="background: #fff8f5; border: 1px solid #ffd8cc; padding: 15px; border-radius: 12px; text-align: center; margin: 15px 0;">
+                    <span style="font-size: 0.9rem; color: #555; font-weight: 500;">ยอดเงินที่ต้องโอน:</span>
+                    <h2 id="checkout-total-display" style="font-size: 2rem; color: var(--primary); font-weight: 800; margin-top: 5px;">฿0</h2>
+                </div>
                 <div class="qr-payment-body">
                     <div class="qr-image-wrap">
                         <img src="IMG_1425 3.jpg" alt="QR Code PromptPay" id="qr-code-img">
@@ -270,6 +277,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
     
     <!-- Footer -->
     <footer style="padding: 40px 8%; background: #fdfdfd; border-top: 1px solid #eee; text-align: center;">

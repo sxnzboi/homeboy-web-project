@@ -41,15 +41,16 @@
             <img src="logohomieboy.png" style="height: 60px; width: auto;">
             Homie Boy
         </div>
-        <h2>เข้าสู่ระบบผู้จัดการ</h2>
+        <h2>เข้าสู่ระบบพนักงาน</h2>
+        <p style="color: var(--text-light); font-size: 0.85rem; margin-bottom: 20px;">Admin · ครัว · ไรเดอร์</p>
         <form id="login-form">
             <div class="form-group">
-                <label>ชื่อผู้ใช้งาน</label>
-                <input type="text" id="username" placeholder="Username" required>
+                <label>อีเมล</label>
+                <input type="email" id="email" placeholder="you@example.com" autocomplete="username" required>
             </div>
             <div class="form-group">
                 <label>รหัสผ่าน</label>
-                <input type="password" id="password" placeholder="Password" required>
+                <input type="password" id="password" placeholder="Password" autocomplete="current-password" required>
             </div>
             <p id="login-error" style="color: #ff5252; font-size: 0.9rem; margin-bottom: 15px; display: none;">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</p>
             <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px;">เข้าสู่ระบบ</button>
@@ -59,9 +60,10 @@
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="firebase-config.js"></script>
-
+    <script src="auth.js"></script>
     <script src="login.js"></script>
     <script>lucide.createIcons();</script>
 </body>

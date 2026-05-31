@@ -1,0 +1,15 @@
+{
+  "name": "homieboy-shop",
+  "private": true,
+  "description": "Homie Boy ordering system",
+  "scripts": {
+    "setup:staff": "node scripts/setup-staff.js",
+    "deploy:rules": "firebase deploy --only firestore:rules"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "firebase-admin": "^13.4.0"
+  }
+}
